@@ -1,4 +1,4 @@
-module helm.sh/helm/v3@v3.1.2
+module helm.sh/helm/v3@v3.2.0
 
 go 1.13
 
@@ -25,6 +25,8 @@ require (
 	9fans.net/go v0.0.2 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/helm/helm v2.16.6+incompatible // indirect
-	helm.sh/helm/v3 v3.1.2 // indirect
+	gonum.org/v1/netlib v0.0.0-20190331212654-76723241ea4e // indirect
+	helm.sh/helm/v3 v3.2.0 // indirect
 	k8s.io/helm v2.16.6+incompatible // indirect
+	sigs.k8s.io/structured-merge-diff v1.0.1-0.20191108220359-b1b620dd3f06 // indirect
 )

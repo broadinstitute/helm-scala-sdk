@@ -18,14 +18,17 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// export listHelm
-func listHelm() {
+//export listHelm
+func listHelm(namespace, kubeToken, apiServer string) {
 	settings := cli.New()
+	settings.KubeToken = kubeToken
+	settings.KubeAPIServer = apiServer
 
+	// kubConfig := kube.GetConfig("/Users/qi/.kube/config  ", "", "galaxy")
 	actionConfig := new(action.Configuration)
 	// You can pass an empty string instead of settings.Namespace() to list
 	// all namespaces
-	if err := actionConfig.Init(settings.RESTClientGetter(), "nfs", os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
 		log.Printf("%+v", err)
 		os.Exit(1)
 	}
@@ -168,4 +171,10 @@ func uninstallCloudmanRelease() {
 	glog.Info(res)
 }
 
-func main() {}
+func main() {
+// 	listHelm(
+// 		"galaxy",
+// 		"your token token",
+// 		"https://35.225.164.84",
+// 	)
+}

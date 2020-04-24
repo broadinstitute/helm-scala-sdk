@@ -42,4 +42,5 @@ public interface HelmJnaClient extends Library {
            );
 
   public void uninstallCloudmanRelease();
+  public void listHelm();
 }
