@@ -48,7 +48,7 @@ func listHelm(namespace, kubeToken, apiServer string) {
 }
 
 //export install
-func install(namespace, releaseName, chartName, filePath string) *C.char {
+func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath string) *C.char {
 	settings := cli.New()
 
 	actionConfig := new(action.Configuration)
@@ -109,8 +109,8 @@ func install(namespace, releaseName, chartName, filePath string) *C.char {
 	return C.CString("ok")
 }
 
-func uninstallRelease(namespace, releaseName string) string {
-	// actionConfig, err := actionConfigInit(namespace)
+//export uninstallRelease
+func uninstallRelease(namespace, kubeToken, apiServer, releaseName string) *C.char {
 	settings := cli.New()
 	actionConfig := new(action.Configuration)
 	err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), glog.Infof)
@@ -165,16 +165,10 @@ func readFile(filePath string, p getter.Providers) ([]byte, error) {
 	return data.Bytes(), err
 }
 
-//export uninstallCloudmanRelease
-func uninstallCloudmanRelease() {
-	res := uninstallRelease("galaxy", "ky-glxy-0409-rls-galaxy")
-	glog.Info(res)
-}
-
 func main() {
-// 	listHelm(
-// 		"galaxy",
-// 		"your token token",
-// 		"https://35.225.164.84",
-// 	)
+	// 	listHelm(
+	// 		"galaxy",
+	// 		"your token token",
+	// 		"https://35.225.164.84",
+	// 	)
 }

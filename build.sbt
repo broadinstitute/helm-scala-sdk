@@ -8,7 +8,8 @@ lazy val root = (project in file("."))
     organization := "org.broadinstitute.dsp",
     name := "helm-scala-sdk",
     version := "0.0.1-SNAPSHOT",
-    scalaVersion := "2.13.1",
+    scalaVersion := "2.13.2",
+    crossScalaVersions := List("2.12.10", "2.13.2"),
     libraryDependencies ++= Seq(
       "net.java.dev.jna" % "jna" % "5.5.0",
       "co.fs2" %% "fs2-core" % "2.3.0",
@@ -17,7 +18,8 @@ lazy val root = (project in file("."))
       "org.scalatest" %% "scalatest" % "3.3.0-SNAP2" % Test
     ),
     addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.10.3"),
-    addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.0")
+    addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.0"),
+    Publishing.publishSettings
   )
 
 scalacOptions ++= Seq(
@@ -28,3 +30,5 @@ scalacOptions ++= Seq(
   "-feature",
 //  "-Xfatal-warnings"
 )
+
+javaOptions in console ++= Seq("-Djna.library.path=/Users/qi/workspace/helm-java-sdk/helm-go-lib")

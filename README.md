@@ -1,4 +1,4 @@
-# helm-java-sdk
+# helm-scala-sdk
 
 Package we're trying to export https://github.com/helm/helm/tree/master/pkg/action
 
@@ -11,10 +11,20 @@ cd helm-go-lib
 go build -o libhelm.dylib -buildmode=c-shared main.go
 ```
 
-```bash
- nm  --extern-only /Users/qi/workspace/helm-java-sdk/helm-go-lib/libhelm.dylib|grep Add                                                                   [20/04/15|12:08PM]
-00000000010bc250 T _Add
-00000000010bbea0 T __cgoexp_44472ad02a5b_Add
+# Usage
+- Add the library to project dependency
+```
+libraryDependencies += "org.broadinstitute.dsp" % "helm-scala-sdk_2.13" % "0.0.1"
 ```
 
-Set JVM parameter `-Djna.library.path=/Users/qi/workspace/helm-java-sdk/helm-go-lib`
+- Set JVM parameter `-Djna.library.path=<path-to-generated-shared-go-library>`
+
+# Publishing
+Publish locally
+
+`sbt publishLocal` (`sbt ++publishLocal` to cross build multiple versions of scala)
+
+Publish to JFrog
+
+`sbt publish` (`sbt ++publish` to cross build multiple versions of scala)
+

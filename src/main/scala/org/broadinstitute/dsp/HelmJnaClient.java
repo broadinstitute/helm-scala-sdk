@@ -36,11 +36,21 @@ public interface HelmJnaClient extends Library {
   // Foreign functions
   public String install(
              GoString.ByValue namespace,
+             GoString.ByValue kubeToken,
+             GoString.ByValue kubeApiServer,
              GoString.ByValue releaseName,
              GoString.ByValue chartName,
              GoString.ByValue filePath
            );
 
-  public void uninstallCloudmanRelease();
-  public void listHelm();
+  public String uninstallRelease(
+          GoString.ByValue namespace,
+          GoString.ByValue kubeToken,
+          GoString.ByValue kubeApiServer
+  );
+
+  public void listHelm(GoString.ByValue namespace,
+                       GoString.ByValue kubeToken,
+                       GoString.ByValue kubeApiServer
+                       );
 }
