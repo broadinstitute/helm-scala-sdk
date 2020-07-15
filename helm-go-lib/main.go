@@ -115,20 +115,20 @@ func uninstallRelease(namespace, kubeToken, apiServer, releaseName string) *C.ch
 	actionConfig := new(action.Configuration)
 	err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), glog.Infof)
 	if err != nil {
-		return err.Error()
+		return C.CString(err.Error())
 	}
 
 	if err != nil {
-		return err.Error()
+		return C.CString(err.Error())
 	}
 	client := action.NewUninstall(actionConfig)
 	_, err = client.Run(releaseName)
 	if err != nil {
-		return err.Error()
+		return C.CString(err.Error())
 	}
 
 	glog.Info("Finished installing %s", releaseName)
-	return "ok"
+	return C.CString("ok")
 }
 
 func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
