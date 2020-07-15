@@ -118,9 +118,6 @@ func uninstallRelease(namespace, kubeToken, apiServer, releaseName string) *C.ch
 		return C.CString(err.Error())
 	}
 
-	if err != nil {
-		return C.CString(err.Error())
-	}
 	client := action.NewUninstall(actionConfig)
 	_, err = client.Run(releaseName)
 	if err != nil {
