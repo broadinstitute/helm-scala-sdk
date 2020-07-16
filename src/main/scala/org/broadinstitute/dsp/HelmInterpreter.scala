@@ -11,7 +11,7 @@ import scala.language.implicitConversions
 
 class Helm[F[_]: ContextShift](blocker: Blocker,
                                concurrencyBound: Semaphore[F])(implicit logger: Logger[F], F: Async[F]) {
-  val helClient = Native.load(
+  val helmClient = Native.load(
     "helm",
     classOf[HelmJnaClient])
 
@@ -21,7 +21,7 @@ class Helm[F[_]: ContextShift](blocker: Blocker,
              ): Kleisli[F, AuthContext, Unit] = {
     for {
       ctx <- Kleisli.ask[F, AuthContext]
-      r <- Kleisli.liftF(blockingF(F.delay(helClient.install(
+      r <- Kleisli.liftF(blockingF(F.delay(helmClient.install(
         ctx.namespace,
         ctx.kubeToken,
         ctx.kubeApiServer,
@@ -36,7 +36,7 @@ class Helm[F[_]: ContextShift](blocker: Blocker,
   def listHelm(): Kleisli[F, AuthContext, Unit] = {
     for {
       ctx <- Kleisli.ask[F, AuthContext]
-      _ <- Kleisli.liftF(blockingF(F.delay(helClient.listHelm(
+      _ <- Kleisli.liftF(blockingF(F.delay(helmClient.listHelm(
         ctx.namespace,
         ctx.kubeToken,
         ctx.kubeApiServer
@@ -48,7 +48,7 @@ class Helm[F[_]: ContextShift](blocker: Blocker,
   def uninstall(): Kleisli[F, AuthContext, Unit] = {
     for {
       ctx <- Kleisli.ask[F, AuthContext]
-      _ <- Kleisli.liftF(blockingF(F.delay(helClient.uninstallRelease(
+      _ <- Kleisli.liftF(blockingF(F.delay(helmClient.uninstallRelease(
         ctx.namespace,
         ctx.kubeToken,
         ctx.kubeApiServer
