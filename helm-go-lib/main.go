@@ -24,10 +24,9 @@ func listHelm(namespace, kubeToken, apiServer string) {
 	settings.KubeToken = kubeToken
 	settings.KubeAPIServer = apiServer
 
-	// kubConfig := kube.GetConfig("/Users/qi/.kube/config  ", "", "galaxy")
+	// kubeConfig := kube.GetConfig("/Users/qi/.kube/config  ", "", "galaxy")
 	actionConfig := new(action.Configuration)
-	// You can pass an empty string instead of settings.Namespace() to list
-	// all namespaces
+	// You can pass an empty string instead of settings.Namespace() to list all namespaces
 	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
 		log.Printf("%+v", err)
 		os.Exit(1)
