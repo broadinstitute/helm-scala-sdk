@@ -1,2 +1,7 @@
+.idea/
 *.class
 *.log
+project/target
+target
+helm-go-lib/libhelm.dylib
+helm-go-lib/libhelm.h
