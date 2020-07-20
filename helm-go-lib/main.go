@@ -3,6 +3,7 @@ package main
 import "C"
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/url"
@@ -49,10 +50,10 @@ func listHelm(namespace, kubeToken, apiServer string) {
 //export install
 func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath string) *C.char {
 	settings := cli.New()
+	fmt.Printf("Top of install()")
 
 	actionConfig := new(action.Configuration)
-	// You can pass an empty string instead of settings.Namespace() to list
-	// all namespaces
+	// You can pass an empty string instead of settings.Namespace() to list all namespaces
 	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
 		log.Printf("%+v", err)
 		return C.CString(err.Error())
@@ -72,6 +73,7 @@ func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath s
 
 	// Check chart dependencies to make sure all are present in /charts
 	chartRequested, err := loader.Load(cp)
+	fmt.Printf("chartRequested is ", *chartRequested)
 	if err != nil {
 		return C.CString(err.Error())
 	}
@@ -99,6 +101,7 @@ func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath s
 	// Merge with the previous map
 	finalOpts := mergeMaps(base, currentMap)
 
+	fmt.Printf("finalOpts are ", &finalOpts)
 	_, err = client.Run(chartRequested, finalOpts)
 	if err != nil {
 		return C.CString(err.Error())
@@ -162,9 +165,12 @@ func readFile(filePath string, p getter.Providers) ([]byte, error) {
 }
 
 func main() {
-	// 	listHelm(
-	// 		"galaxy",
-	// 		"your token token",
-	// 		"https://35.225.164.84",
-	// 	)
+	install(
+		"test-helm-client-0716-1",
+		"eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tOHhqd2MiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjllNzc5YzI3LWFiNjAtMTFlYS1iMjY5LTQyMDEwYTgwMDBlZCIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQifQ.atM5y4Qd5sgTDQ-JpWCFBdVE0jZYUz0kdDDsqqnK__H1MnWsti0jVy5JNjurFH5dNbjYkDW0uW37agMCM-1hWGAFBKYYL4RQZdNNwfxGw_VXtDmWEC896OphTHDKOAbC9h-C6RfzwJC1--D3nGZfdgrqMeE6U4Fi0LXc0PIRBUM9BdgHY5Dr0s2bKsjTfUe0huru2YRNM7NZtbIPSYd2J680Mcn0Z7OpshpY0JnOkmMjGsdqw6fLLMhzGf9OHZN5LBal8aTUHRSVIgRrpXejNzjP91QCbfGMe9v9FnZNwzlltFSMsE3J-aQtw282f5o8H_djWrwv0-p-OkcX3kNQJw",
+		"https://34.66.249.164",
+		"nginx-api-rls-0720-1",
+		"nginx-stable/nginx-ingress",
+		"/Users/kyuksel/gke_experiment/kubernetes-ingress/deployments/helm-chart/values.yaml",
+		)
 }
