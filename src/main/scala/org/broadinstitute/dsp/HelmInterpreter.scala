@@ -41,7 +41,8 @@ class Helm[F[_]: ContextShift](blocker: Blocker,
         ctx.kubeToken,
         ctx.kubeApiServer
       ))))
-      _ <- Kleisli.liftF(translateResult("helm list", "ok")) //make listHelm return String
+      // TODO: Make 'helm list' return String
+      _ <- Kleisli.liftF(translateResult("helm list", "ok"))
     } yield ()
   }
 
@@ -53,13 +54,14 @@ class Helm[F[_]: ContextShift](blocker: Blocker,
         ctx.kubeToken,
         ctx.kubeApiServer
       ))))
-      _ <- Kleisli.liftF(translateResult("helm list", "ok")) //make listHelm return String
+      // TODO: Make 'helm uninstall' return String
+      _ <- Kleisli.liftF(translateResult("helm list", "ok"))
     } yield ()
   }
 
   def translateResult(cmd: String, result: String): F[Unit] = result match {
-    case "ok" => logger.info(s"${cmd} succeeded")
-    case s => F.raiseError(HelmException(s))
+    case "ok" => println(s"The command '${cmd}' succeeded"); logger.info(s"The command '${cmd}' succeeded")
+    case s => println(s"The command '${cmd}' failed with exception: ${s}"); F.raiseError(HelmException(s))
   }
 
   private def blockingF[A](fa: F[A]): F[A] = concurrencyBound.withPermit(blocker.blockOn(fa))

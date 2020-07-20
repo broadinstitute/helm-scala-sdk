@@ -22,7 +22,7 @@ object HelmManualTest extends HelmScalaSdkTestSuite {
 
   def install(): Unit = {
     helmClient.install(
-      "ky-galaxy-rls-0716-1",
+      "ky-galaxy-rls-0720-1",
       "galaxyproject/galaxy",
       "/Users/kyuksel/gke_experiment/galaxy-cvmfs-csi-helm/galaxy-cvmfs-csi/values.yaml"
     ).run(authContext)
