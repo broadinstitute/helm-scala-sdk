@@ -50,7 +50,7 @@ func listHelm(namespace, kubeToken, apiServer string) {
 //export install
 func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath string) *C.char {
 	settings := cli.New()
-	fmt.Printf("Top of install()")
+	fmt.Printf("Top of install()\n")
 
 	actionConfig := new(action.Configuration)
 	// You can pass an empty string instead of settings.Namespace() to list all namespaces
@@ -73,7 +73,7 @@ func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath s
 
 	// Check chart dependencies to make sure all are present in /charts
 	chartRequested, err := loader.Load(cp)
-	fmt.Printf("chartRequested is ", *chartRequested)
+	//fmt.Printf("chartRequested is ", *chartRequested)
 	if err != nil {
 		return C.CString(err.Error())
 	}
@@ -90,19 +90,29 @@ func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath s
 	}
 
 	currentMap := map[string]interface{}{}
-	bytes, err := readFile(filePath, p)
-	if err != nil {
-		return C.CString(err.Error())
-	}
+	finalOpts := map[string]interface{}{}
+	fmt.Printf("Before filePath if\n")
+	if filePath != "" {
+		fmt.Printf("if filePath != empty \n")
+		bytes, err := readFile(filePath, p)
+		if err != nil {
+			return C.CString(err.Error())
+		}
 
-	if err := yaml.Unmarshal(bytes, &currentMap); err != nil {
-		return C.CString("failed to parse values")
+		if err := yaml.Unmarshal(bytes, &currentMap); err != nil {
+			return C.CString("failed to parse values")
+		}
+		// Merge with the previous map
+		finalOpts = mergeMaps(base, currentMap)
+	} else {
+		fmt.Printf("if filePath is empty \n")
+		finalOpts = base
 	}
-	// Merge with the previous map
-	finalOpts := mergeMaps(base, currentMap)
-
-	fmt.Printf("finalOpts are ", &finalOpts)
-	_, err = client.Run(chartRequested, finalOpts)
+	
+	//fmt.Printf("finalOpts are ", &finalOpts)
+	rls, err := client.Run(chartRequested, finalOpts)
+	fmt.Printf("%+v", "err is ", err)
+	fmt.Printf("%+v", "rls is ", rls)
 	if err != nil {
 		return C.CString(err.Error())
 	}
@@ -171,6 +181,7 @@ func main() {
 		"https://34.66.249.164",
 		"nginx-api-rls-0720-1",
 		"nginx-stable/nginx-ingress",
-		"/Users/kyuksel/gke_experiment/kubernetes-ingress/deployments/helm-chart/values.yaml",
+		//"/Users/kyuksel/gke_experiment/kubernetes-ingress/deployments/helm-chart/values.yaml",
+		"",
 		)
 }
