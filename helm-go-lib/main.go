@@ -15,6 +15,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
+	//"helm.sh/helm/v3/pkg/kube"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"sigs.k8s.io/yaml"
 )
@@ -49,8 +50,11 @@ func listHelm(namespace, kubeToken, apiServer string) {
 
 //export install
 func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath string) *C.char {
+	// cli.New() gets the deployment namespace from env variable so we're setting it below
+	// namespace we pass into actionConfig.Init sets the release namespace, not the deployment namespace
+	// TODO see if we can create a custom EnvSettings with namespace overridden instead of setting an env variable
+	os.Setenv("HELM_NAMESPACE", namespace)
 	settings := cli.New()
-	fmt.Printf("Top of install()\n")
 
 	actionConfig := new(action.Configuration)
 	// You can pass an empty string instead of settings.Namespace() to list all namespaces
@@ -59,12 +63,18 @@ func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath s
 		return C.CString(err.Error())
 	}
 
+	s, b, e := settings.RESTClientGetter().ToRawKubeConfigLoader().Namespace()
+	fmt.Println("RESTClientGetter namespace is ", s, b, e)
+	fmt.Println("namespace is ", namespace)
+
 	client := action.NewInstall(actionConfig)
 	client.DependencyUpdate = true
 	client.Namespace = namespace
 	client.ReleaseName = releaseName
 	client.Atomic = true
 	// client.DryRun = true
+
+	fmt.Println("client.Namespace is ", client.Namespace)
 
 	cp, err := client.ChartPathOptions.LocateChart(chartName, settings)
 	if err != nil {
@@ -180,7 +190,7 @@ func main() {
 		"eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tOHhqd2MiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjllNzc5YzI3LWFiNjAtMTFlYS1iMjY5LTQyMDEwYTgwMDBlZCIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQifQ.atM5y4Qd5sgTDQ-JpWCFBdVE0jZYUz0kdDDsqqnK__H1MnWsti0jVy5JNjurFH5dNbjYkDW0uW37agMCM-1hWGAFBKYYL4RQZdNNwfxGw_VXtDmWEC896OphTHDKOAbC9h-C6RfzwJC1--D3nGZfdgrqMeE6U4Fi0LXc0PIRBUM9BdgHY5Dr0s2bKsjTfUe0huru2YRNM7NZtbIPSYd2J680Mcn0Z7OpshpY0JnOkmMjGsdqw6fLLMhzGf9OHZN5LBal8aTUHRSVIgRrpXejNzjP91QCbfGMe9v9FnZNwzlltFSMsE3J-aQtw282f5o8H_djWrwv0-p-OkcX3kNQJw",
 		"https://34.66.249.164",
 		//"nginx-api-rls-0721-1",
-		"bitnami-nginx-api-rls-0721-2",
+		"bitnami-nginx-api-rls-0722-3",
 		//"nginx-stable/nginx-ingress",
 		"bitnami/nginx",
 		//"/Users/kyuksel/gke_experiment/kubernetes-ingress/deployments/helm-chart/values.yaml",
