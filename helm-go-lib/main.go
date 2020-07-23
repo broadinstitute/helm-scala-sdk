@@ -52,8 +52,9 @@ func listHelm(namespace, kubeToken, apiServer string) {
 func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath string) *C.char {
 	// cli.New() gets the deployment namespace from env variable so we're setting it below
 	// namespace we pass into actionConfig.Init sets the release namespace, not the deployment namespace
-	// TODO see if we can create a custom EnvSettings with namespace overridden instead of setting an env variable
+	// TODO see if we can create a custom EnvSettings with values below overridden instead of setting env variables
 	os.Setenv("HELM_NAMESPACE", namespace)
+	os.Setenv("HELM_KUBETOKEN", kubeToken)
 	settings := cli.New()
 
 	actionConfig := new(action.Configuration)
@@ -64,8 +65,9 @@ func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath s
 	}
 
 	s, b, e := settings.RESTClientGetter().ToRawKubeConfigLoader().Namespace()
+	kt := settings.KubeToken
 	fmt.Println("RESTClientGetter namespace is ", s, b, e)
-	fmt.Println("namespace is ", namespace)
+	fmt.Println("KubeToken is ", kt)
 
 	client := action.NewInstall(actionConfig)
 	client.DependencyUpdate = true
@@ -185,12 +187,20 @@ func readFile(filePath string, p getter.Providers) ([]byte, error) {
 }
 
 func main() {
+	defaultSaToken := "eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tOHhqd2MiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjllNzc5YzI3LWFiNjAtMTFlYS1iMjY5LTQyMDEwYTgwMDBlZCIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQifQ.atM5y4Qd5sgTDQ-JpWCFBdVE0jZYUz0kdDDsqqnK__H1MnWsti0jVy5JNjurFH5dNbjYkDW0uW37agMCM-1hWGAFBKYYL4RQZdNNwfxGw_VXtDmWEC896OphTHDKOAbC9h-C6RfzwJC1--D3nGZfdgrqMeE6U4Fi0LXc0PIRBUM9BdgHY5Dr0s2bKsjTfUe0huru2YRNM7NZtbIPSYd2J680Mcn0Z7OpshpY0JnOkmMjGsdqw6fLLMhzGf9OHZN5LBal8aTUHRSVIgRrpXejNzjP91QCbfGMe9v9FnZNwzlltFSMsE3J-aQtw282f5o8H_djWrwv0-p-OkcX3kNQJw"
+	// test-helm-client-0722-1-sa
+	customSaToken := "eyJhbGciOiJSUzI1NiIsImtpZCI6Il8ybnZKZUhmbU5MYUcyNlpvVGxBYW5hTHdMVFpxSWVQTmJnUzZ0UXNMbGMifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJ0ZXN0LWhlbG0tY2xpZW50LTA3MjItMS1ucyIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJ0ZXN0LWhlbG0tY2xpZW50LTA3MjItMS1zYS10b2tlbi00ZHRmaCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJ0ZXN0LWhlbG0tY2xpZW50LTA3MjItMS1zYSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjZjZTg0N2EyLTA5MGQtNDk3My04YWQ4LWFkNDIzMzQxNTBjZCIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDp0ZXN0LWhlbG0tY2xpZW50LTA3MjItMS1uczp0ZXN0LWhlbG0tY2xpZW50LTA3MjItMS1zYSJ9.mT87HdtohqFnR8vPFWMIowMzJownaiiY38JxV0IoebhdJkDzF5LRUQbmtv0qQmxnC-85PrFIRvMzWvly4u5P7iFEXVlP6Iv0g28i5iPbZycK7ASU4HnJnOhIW14SIP6-m-iI4FD5gk8SNQHsNFMMhanUcnolbj8iZDJLgVrgYr95etq6KZmu_lCQf6Ps0GtdR5axgtYXKtuVHDk27EgbWXqB_OUc6IdAyrhW4PT2dqhcqP-WhIWV0rScN2L9XHpcv_a3dsVUDUAVYdh6vPoSuXnDWpDLOf18EKSnR1AMD-mg5IOMAAbG55tuNohy-JrD1RqMUthQ2ankMhhAmREwIg"
+
+	_ = defaultSaToken
+	kubeToken := customSaToken
+
 	install(
-		"test-helm-client-0716-1",
-		"eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tOHhqd2MiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjllNzc5YzI3LWFiNjAtMTFlYS1iMjY5LTQyMDEwYTgwMDBlZCIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQifQ.atM5y4Qd5sgTDQ-JpWCFBdVE0jZYUz0kdDDsqqnK__H1MnWsti0jVy5JNjurFH5dNbjYkDW0uW37agMCM-1hWGAFBKYYL4RQZdNNwfxGw_VXtDmWEC896OphTHDKOAbC9h-C6RfzwJC1--D3nGZfdgrqMeE6U4Fi0LXc0PIRBUM9BdgHY5Dr0s2bKsjTfUe0huru2YRNM7NZtbIPSYd2J680Mcn0Z7OpshpY0JnOkmMjGsdqw6fLLMhzGf9OHZN5LBal8aTUHRSVIgRrpXejNzjP91QCbfGMe9v9FnZNwzlltFSMsE3J-aQtw282f5o8H_djWrwv0-p-OkcX3kNQJw",
+		//"test-helm-client-0716-1",
+		"test-helm-client-0722-1-ns",
+		kubeToken,
 		"https://34.66.249.164",
 		//"nginx-api-rls-0721-1",
-		"bitnami-nginx-api-rls-0722-5",
+		"bitnami-nginx-api-rls-0723-6",
 		//"nginx-stable/nginx-ingress",
 		"bitnami/nginx",
 		//"/Users/kyuksel/gke_experiment/kubernetes-ingress/deployments/helm-chart/values.yaml",
