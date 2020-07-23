@@ -4,6 +4,8 @@ import "C"
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
+	"helm.sh/helm/v3/pkg/strvals"
 	"io/ioutil"
 	"log"
 	"net/url"
@@ -14,10 +16,9 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
-	//"helm.sh/helm/v3/pkg/kube"
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"sigs.k8s.io/yaml"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 //export listHelm
@@ -49,12 +50,13 @@ func listHelm(namespace, kubeToken, apiServer string) {
 }
 
 //export install
-func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath string) *C.char {
+func install(namespace string, kubeToken string, apiServer string, releaseName string, chartName string, args map[string]string) *C.char {
 	// cli.New() gets the deployment namespace from env variable so we're setting it below
 	// namespace we pass into actionConfig.Init sets the release namespace, not the deployment namespace
 	// TODO see if we can create a custom EnvSettings with values below overridden instead of setting env variables
 	os.Setenv("HELM_NAMESPACE", namespace)
 	os.Setenv("HELM_KUBETOKEN", kubeToken)
+	os.Setenv("HELM_KUBEAPISERVER", apiServer)
 	settings := cli.New()
 
 	actionConfig := new(action.Configuration)
@@ -64,9 +66,9 @@ func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath s
 		return C.CString(err.Error())
 	}
 
-	s, b, e := settings.RESTClientGetter().ToRawKubeConfigLoader().Namespace()
+	n, _, _ := settings.RESTClientGetter().ToRawKubeConfigLoader().Namespace()
 	kt := settings.KubeToken
-	fmt.Println("RESTClientGetter namespace is ", s, b, e)
+	fmt.Println("RESTClientGetter namespace is ", n)
 	fmt.Println("KubeToken is ", kt)
 
 	client := action.NewInstall(actionConfig)
@@ -90,46 +92,30 @@ func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath s
 		return C.CString(err.Error())
 	}
 
-	p := getter.All(settings)
-	base := map[string]interface{}{
-		"persistence.accessMode":              "ReadWriteMany",
-		"persistence.storageClass":            "nfs",
-		"image.tag":                           "20.01-dev",
-		"service.type":                        "LoadBalancer",
-		"service.port":                        "80",
-		"ingress.enabled":                     "false",
-		"postgresql.persistence.storageClass": "standard",
+	// Following the pattern from the example below to override chart values
+	// https://github.com/PrasadG193/helm-clientgo-example
+	providers := getter.All(settings)
+	valueOpts := &values.Options{}
+
+	// Combine overrides from different sources, if any
+	values, err := valueOpts.MergeValues(providers)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	currentMap := map[string]interface{}{}
-	finalOpts := map[string]interface{}{}
-	fmt.Printf("Before filePath if\n")
-	if filePath != "" {
-		fmt.Printf("if filePath != empty \n")
-		bytes, err := readFile(filePath, p)
-		if err != nil {
-			return C.CString(err.Error())
-		}
-
-		if err := yaml.Unmarshal(bytes, &currentMap); err != nil {
-			return C.CString("failed to parse values")
-		}
-		// Merge with the previous map
-		finalOpts = mergeMaps(base, currentMap)
-	} else {
-		fmt.Printf("if filePath is empty \n")
-		finalOpts = base
+	// Add args to overrides; currently allowing --set values only
+	if err := strvals.ParseInto(args["set"], values); err != nil {
+		log.Fatal(errors.Wrap(err, "failed parsing --set data"))
 	}
 	
-	//fmt.Printf("finalOpts are ", &finalOpts)
-	rls, err := client.Run(chartRequested, finalOpts)
+	rls, err := client.Run(chartRequested, values)
 	fmt.Printf("%+v", "err is ", err)
 	fmt.Printf("%+v", "rls is ", rls)
 	if err != nil {
 		return C.CString(err.Error())
 	}
 
-	glog.Info("Finished installing %s", releaseName)
+	glog.Info("\nFinished installing %s", releaseName)
 	return C.CString("ok")
 }
 
@@ -152,40 +138,6 @@ func uninstallRelease(namespace, kubeToken, apiServer, releaseName string) *C.ch
 	return C.CString("ok")
 }
 
-func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{}, len(a))
-	for k, v := range a {
-		out[k] = v
-	}
-	for k, v := range b {
-		if v, ok := v.(map[string]interface{}); ok {
-			if bv, ok := out[k]; ok {
-				if bv, ok := bv.(map[string]interface{}); ok {
-					out[k] = mergeMaps(bv, v)
-					continue
-				}
-			}
-		}
-		out[k] = v
-	}
-	return out
-}
-
-// readFile load a file from stdin, the local directory, or a remote file with a url.
-func readFile(filePath string, p getter.Providers) ([]byte, error) {
-	if strings.TrimSpace(filePath) == "-" {
-		return ioutil.ReadAll(os.Stdin)
-	}
-	u, _ := url.Parse(filePath)
-
-	g, err := p.ByScheme(u.Scheme)
-	if err != nil {
-		return ioutil.ReadFile(filePath)
-	}
-	data, err := g.Get(filePath, getter.WithURL(filePath))
-	return data.Bytes(), err
-}
-
 func main() {
 	defaultSaToken := "eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tOHhqd2MiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjllNzc5YzI3LWFiNjAtMTFlYS1iMjY5LTQyMDEwYTgwMDBlZCIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQifQ.atM5y4Qd5sgTDQ-JpWCFBdVE0jZYUz0kdDDsqqnK__H1MnWsti0jVy5JNjurFH5dNbjYkDW0uW37agMCM-1hWGAFBKYYL4RQZdNNwfxGw_VXtDmWEC896OphTHDKOAbC9h-C6RfzwJC1--D3nGZfdgrqMeE6U4Fi0LXc0PIRBUM9BdgHY5Dr0s2bKsjTfUe0huru2YRNM7NZtbIPSYd2J680Mcn0Z7OpshpY0JnOkmMjGsdqw6fLLMhzGf9OHZN5LBal8aTUHRSVIgRrpXejNzjP91QCbfGMe9v9FnZNwzlltFSMsE3J-aQtw282f5o8H_djWrwv0-p-OkcX3kNQJw"
 	// test-helm-client-0722-1-sa
@@ -194,16 +146,16 @@ func main() {
 	_ = defaultSaToken
 	kubeToken := customSaToken
 
+	// comma seperated values to set
+	nginxArgs := map[string]string{ "set": "home=dummy-home,appVersion=blah-version" }
+	//mysqlArgs := map[string]string{ "set": "mysqlRootPassword=admin@123,persistence.enabled=false,imagePullPolicy=Always" }
+
 	install(
-		//"test-helm-client-0716-1",
 		"test-helm-client-0722-1-ns",
 		kubeToken,
 		"https://34.66.249.164",
-		//"nginx-api-rls-0721-1",
-		"bitnami-nginx-api-rls-0723-6",
-		//"nginx-stable/nginx-ingress",
+		"bitnami-nginx-api-rls-0723-8",
 		"bitnami/nginx",
-		//"/Users/kyuksel/gke_experiment/kubernetes-ingress/deployments/helm-chart/values.yaml",
-		"",
+		nginxArgs,
 		)
 }
