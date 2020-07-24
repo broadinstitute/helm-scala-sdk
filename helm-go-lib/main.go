@@ -103,8 +103,8 @@ func install(namespace string, kubeToken string, apiServer string, releaseName s
 
 	actionConfig := new(action.Configuration)
 	// You can pass an empty string instead of settings.Namespace() to list all namespaces
-	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
-		log.Printf("%+v", err)
+	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), glog.Infof); err != nil {
+		glog.Errorf("%+v", err)
 		return C.CString(err.Error())
 	}
 
@@ -122,7 +122,6 @@ func install(namespace string, kubeToken string, apiServer string, releaseName s
 
 	// Check chart dependencies to make sure all are present in /charts
 	chartRequested, err := loader.Load(cp)
-	//fmt.Printf("chartRequested is ", *chartRequested)
 	if err != nil {
 		return C.CString(err.Error())
 	}
@@ -135,17 +134,17 @@ func install(namespace string, kubeToken string, apiServer string, releaseName s
 	// Combine overrides from different sources, if any
 	values, err := valueOpts.MergeValues(providers)
 	if err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 
 	// Add --set overrides in the form of comma-separated key=value pairs
 	if err := strvals.ParseInto(overrideArgs, values); err != nil {
-		log.Fatal(errors.Wrap(err, "failed parsing --set data"))
+		glog.Fatal(errors.Wrap(err, "failed parsing --set values"))
 	}
 	
 	_, err = client.Run(chartRequested, values)
 	if err != nil {
-		fmt.Printf("%+v", "\nerr is ", err, "\n")
+		glog.Errorf("%+v", "\nerr is ", err, "\n")
 		return C.CString(err.Error())
 	}
 
