@@ -40,7 +40,7 @@ public interface HelmJnaClient extends Library {
              GoString.ByValue kubeApiServer,
              GoString.ByValue releaseName,
              GoString.ByValue chartName,
-             GoString.ByValue filePath
+             GoString.ByValue setArgs
            );
 
   public String uninstallRelease(

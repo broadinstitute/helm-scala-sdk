@@ -6,11 +6,8 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/strvals"
-	"io/ioutil"
 	"log"
-	"net/url"
 	"os"
-	"strings"
 
 	"github.com/golang/glog"
 	"helm.sh/helm/v3/pkg/action"
@@ -50,7 +47,7 @@ func listHelm(namespace, kubeToken, apiServer string) {
 }
 
 //export install
-func install(namespace string, kubeToken string, apiServer string, releaseName string, chartName string, args map[string]string) *C.char {
+func install(namespace string, kubeToken string, apiServer string, releaseName string, chartName string, setArgs string) *C.char {
 	// cli.New() gets the deployment namespace from env variable so we're setting it below
 	// namespace we pass into actionConfig.Init sets the release namespace, not the deployment namespace
 	// TODO see if we can create a custom EnvSettings with values below overridden instead of setting env variables
@@ -92,7 +89,7 @@ func install(namespace string, kubeToken string, apiServer string, releaseName s
 		return C.CString(err.Error())
 	}
 
-	// Following the pattern from the example below to override chart values
+	// Adapted from the example below to override chart values as in CLI --set
 	// https://github.com/PrasadG193/helm-clientgo-example
 	providers := getter.All(settings)
 	valueOpts := &values.Options{}
@@ -103,8 +100,8 @@ func install(namespace string, kubeToken string, apiServer string, releaseName s
 		log.Fatal(err)
 	}
 
-	// Add args to overrides; currently allowing --set values only
-	if err := strvals.ParseInto(args["set"], values); err != nil {
+	// Add --set overrides in the form of comma-separated key=value pairs
+	if err := strvals.ParseInto(setArgs, values); err != nil {
 		log.Fatal(errors.Wrap(err, "failed parsing --set data"))
 	}
 	
@@ -147,14 +144,14 @@ func main() {
 	kubeToken := customSaToken
 
 	// comma seperated values to set
-	nginxArgs := map[string]string{ "set": "home=dummy-home,appVersion=blah-version" }
+	nginxArgs := "home=dummy-home,appVersion=blah-version"
 	//mysqlArgs := map[string]string{ "set": "mysqlRootPassword=admin@123,persistence.enabled=false,imagePullPolicy=Always" }
 
 	install(
 		"test-helm-client-0722-1-ns",
 		kubeToken,
 		"https://34.66.249.164",
-		"bitnami-nginx-api-rls-0723-8",
+		"bitnami-nginx-api-rls-0724-1",
 		"bitnami/nginx",
 		nginxArgs,
 		)

@@ -29,10 +29,9 @@ object HelmManualTest extends HelmScalaSdkTestSuite {
 
   def install(): Unit = {
     helmClient.install(
-      "bitnami-nginx-api-rls-0721-3",
+      "bitnami-nginx-api-rls-0724-2",
       "bitnami/nginx",
-//      "/Users/kyuksel/gke_experiment/galaxy-cvmfs-csi-helm/galaxy-cvmfs-csi/values.yaml"
-      ""
+      "scala=hohoho,go=getit"
     ).run(authContext)
       .unsafeRunSync()
   }
