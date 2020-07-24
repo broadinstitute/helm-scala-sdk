@@ -11,7 +11,7 @@ import cats.effect.IO
  * KubeApiServer and KubeToken can be retrieved via kubectl as described below:
  * https://kubernetes.io/docs/tasks/administer-cluster/access-cluster-api/#without-kubectl-proxy
  *
- * The ServiceAccount associated with the token needs to have a role sufficient to perform
+ * The ServiceAccount associated with the token needs to have a role sufficient for the release to perform
  * the required operations on the cluster. For example, to grant 'edit' role across the cluster:
  *    kubectl create rolebinding rb-default-edit \
  *      --clusterrole=edit \
@@ -27,11 +27,11 @@ object HelmManualTest extends HelmScalaSdkTestSuite {
     KubeApiServer("https://34.66.249.164")
   )
 
-  def install(): Unit = {
-    helmClient.install(
-      "bitnami-nginx-api-rls-0724-2",
+  def installChart(): Unit = {
+    helmClient.installChart(
+      "bitnami-nginx-api-rls-0724-16",
       "bitnami/nginx",
-      "scala=hohoho,go=getit"
+      "key1.key2=v1,key3.key4.key5=v2"
     ).run(authContext)
       .unsafeRunSync()
   }

@@ -5,7 +5,6 @@ import "C"
 import (
 	"flag"
 	"fmt"
-	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/strvals"
 	"log"
 	"os"
@@ -47,7 +46,7 @@ func main() {
 		overrideValues = progArgs[5]
 	}
 
-	install(
+	installChart(
 		namespace,
 		kubeToken,
 		apiServer,
@@ -56,8 +55,6 @@ func main() {
 		overrideValues,
 	)
 
-	flag.Parse()
-	flag.Args()
 	glog.Flush()
 }
 
@@ -89,10 +86,10 @@ func listHelm(namespace, kubeToken, apiServer string) {
 	}
 }
 
-//export install
-// TODO: Do we need to make 'overrideArgs' optional?
+//export installChart
+// TODO: Do we need to make 'overrideValues' optional?
 // TODO: If so, emulate it (perhaps via variadic functions) since Golang doesn't support optional parameters :(
-func install(namespace string, kubeToken string, apiServer string, releaseName string, chartName string, overrideArgs string) *C.char {
+func installChart(namespace string, kubeToken string, apiServer string, releaseName string, chartName string, overrideValues string) *C.char {
 	// cli.New() gets the deployment namespace from env variable so we're setting it below
 	// namespace we pass into actionConfig.Init sets the release namespace, not the deployment namespace
 	// TODO see if we can create a custom EnvSettings with values below overridden instead of setting env variables
@@ -103,8 +100,8 @@ func install(namespace string, kubeToken string, apiServer string, releaseName s
 
 	actionConfig := new(action.Configuration)
 	// You can pass an empty string instead of settings.Namespace() to list all namespaces
-	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), glog.Infof); err != nil {
-		glog.Errorf("%+v", err)
+	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+		log.Fatalf("%+v", err)
 		return C.CString(err.Error())
 	}
 
@@ -117,13 +114,13 @@ func install(namespace string, kubeToken string, apiServer string, releaseName s
 
 	cp, err := client.ChartPathOptions.LocateChart(chartName, settings)
 	if err != nil {
-		return C.CString(err.Error())
+		log.Fatalf("%+v", err)
 	}
 
 	// Check chart dependencies to make sure all are present in /charts
 	chartRequested, err := loader.Load(cp)
 	if err != nil {
-		return C.CString(err.Error())
+		log.Fatalf("%+v", err)
 	}
 
 	// Adapted from the example below to override chart values as in CLI --set
@@ -134,21 +131,20 @@ func install(namespace string, kubeToken string, apiServer string, releaseName s
 	// Combine overrides from different sources, if any
 	values, err := valueOpts.MergeValues(providers)
 	if err != nil {
-		glog.Fatal(err)
+		log.Fatalf("%+v", err)
 	}
 
 	// Add --set overrides in the form of comma-separated key=value pairs
-	if err := strvals.ParseInto(overrideArgs, values); err != nil {
-		glog.Fatal(errors.Wrap(err, "failed parsing --set values"))
+	if err := strvals.ParseInto(overrideValues, values); err != nil {
+		log.Fatal("Failed parsing --set values", err)
 	}
 	
 	_, err = client.Run(chartRequested, values)
 	if err != nil {
-		glog.Errorf("%+v", "\nerr is ", err, "\n")
-		return C.CString(err.Error())
+		log.Fatalf("%+v", "\nerr is ", err, "\n")
 	}
 
-	glog.Info("\n\nFinished installing release: ", releaseName)
+	log.Println("\n\nFinished installing release: ", releaseName)
 
 	return C.CString("ok")
 }

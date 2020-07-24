@@ -15,21 +15,21 @@ class Helm[F[_]: ContextShift](blocker: Blocker,
     "helm",
     classOf[HelmJnaClient])
 
-  def install(releaseName: String,
-              chartName: String,
-              overrideArgs: String
+  def installChart(releaseName: String,
+                   chartName: String,
+                   values: String
              ): Kleisli[F, AuthContext, Unit] = {
     for {
       ctx <- Kleisli.ask[F, AuthContext]
-      r <- Kleisli.liftF(blockingF(F.delay(helmClient.install(
+      r <- Kleisli.liftF(blockingF(F.delay(helmClient.installChart(
         ctx.namespace,
         ctx.kubeToken,
         ctx.kubeApiServer,
         releaseName,
         chartName,
-        overrideArgs
+        values
       ))))
-      _ <- Kleisli.liftF(translateResult("helm install", r))
+      _ <- Kleisli.liftF(translateResult("helm installChart", r))
     } yield ()
   }
 

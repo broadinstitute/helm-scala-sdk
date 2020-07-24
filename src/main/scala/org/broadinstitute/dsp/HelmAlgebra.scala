@@ -6,10 +6,10 @@ import scala.util.control.NoStackTrace
 
 trait HelmAlgebra[F[_]] {
 
-  def install(
+  def installChart(
                releaseName: String,
                chartName: String,
-               filePath: String
+               values: String
              ): Kleisli[F, AuthContext, Unit]
 
   def listHelm(): Kleisli[F, AuthContext, Unit]
