@@ -9,6 +9,7 @@ import (
 	"helm.sh/helm/v3/pkg/strvals"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/golang/glog"
 	"helm.sh/helm/v3/pkg/action"
@@ -20,31 +21,43 @@ import (
 )
 
 /*
-	How to run:
-		cd to directory of this file
-		go run main.go -logtostderr=true -stderrthreshold=INFO
+	Example command line to run from within the directory this file is in:
+		go run main.go \
+			-logtostderr=true -stderrthreshold=INFO \
+			my-namespace my-kube-token-string https://12.34.567.890 bitnami/nginx key1=v1,key2.key3=v2
 */
 func main() {
-	defaultSaToken := "eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tOHhqd2MiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjllNzc5YzI3LWFiNjAtMTFlYS1iMjY5LTQyMDEwYTgwMDBlZCIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQifQ.atM5y4Qd5sgTDQ-JpWCFBdVE0jZYUz0kdDDsqqnK__H1MnWsti0jVy5JNjurFH5dNbjYkDW0uW37agMCM-1hWGAFBKYYL4RQZdNNwfxGw_VXtDmWEC896OphTHDKOAbC9h-C6RfzwJC1--D3nGZfdgrqMeE6U4Fi0LXc0PIRBUM9BdgHY5Dr0s2bKsjTfUe0huru2YRNM7NZtbIPSYd2J680Mcn0Z7OpshpY0JnOkmMjGsdqw6fLLMhzGf9OHZN5LBal8aTUHRSVIgRrpXejNzjP91QCbfGMe9v9FnZNwzlltFSMsE3J-aQtw282f5o8H_djWrwv0-p-OkcX3kNQJw"
-	// test-helm-client-0722-1-sa
-	customSaToken := "eyJhbGciOiJSUzI1NiIsImtpZCI6Il8ybnZKZUhmbU5MYUcyNlpvVGxBYW5hTHdMVFpxSWVQTmJnUzZ0UXNMbGMifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJ0ZXN0LWhlbG0tY2xpZW50LTA3MjItMS1ucyIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJ0ZXN0LWhlbG0tY2xpZW50LTA3MjItMS1zYS10b2tlbi00ZHRmaCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJ0ZXN0LWhlbG0tY2xpZW50LTA3MjItMS1zYSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjZjZTg0N2EyLTA5MGQtNDk3My04YWQ4LWFkNDIzMzQxNTBjZCIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDp0ZXN0LWhlbG0tY2xpZW50LTA3MjItMS1uczp0ZXN0LWhlbG0tY2xpZW50LTA3MjItMS1zYSJ9.mT87HdtohqFnR8vPFWMIowMzJownaiiY38JxV0IoebhdJkDzF5LRUQbmtv0qQmxnC-85PrFIRvMzWvly4u5P7iFEXVlP6Iv0g28i5iPbZycK7ASU4HnJnOhIW14SIP6-m-iI4FD5gk8SNQHsNFMMhanUcnolbj8iZDJLgVrgYr95etq6KZmu_lCQf6Ps0GtdR5axgtYXKtuVHDk27EgbWXqB_OUc6IdAyrhW4PT2dqhcqP-WhIWV0rScN2L9XHpcv_a3dsVUDUAVYdh6vPoSuXnDWpDLOf18EKSnR1AMD-mg5IOMAAbG55tuNohy-JrD1RqMUthQ2ankMhhAmREwIg"
+	flag.Parse()
+	progArgs := flag.Args()
+	lenProgArgs := len(progArgs)
 
-	_ = defaultSaToken
-	kubeToken := customSaToken
+	if (lenProgArgs != 5) && (lenProgArgs != 6)  {
+		fmt.Println("Expected args: <namespace> <kube token> <api server> <release name> <chart name> <values>",
+			"\n\nFound:\n", strings.Join(progArgs, "\n\n\t"))
+		return
+	}
 
-	// comma seperated values to set
-	nginxArgs := "home=dummy-home,appVersion=blah-version"
-	//mysqlArgs := map[string]string{ "set": "mysqlRootPassword=admin@123,persistence.enabled=false,imagePullPolicy=Always" }
+	namespace := progArgs[0]
+	kubeToken := progArgs[1]
+	apiServer := progArgs[2]
+	releaseName := progArgs[3]
+	chartName := progArgs[4]
+	overrideValues := ""
+	if len(progArgs) == 6 {
+		overrideValues = progArgs[5]
+	}
 
 	install(
-		"test-helm-client-0722-1-ns",
+		namespace,
 		kubeToken,
-		"https://34.66.249.164",
-		"bitnami-nginx-api-rls-0724-3",
-		"bitnami/nginx",
-		nginxArgs,
+		apiServer,
+		releaseName,
+		chartName,
+		overrideValues,
 	)
 
+	flag.Parse()
+	flag.Args()
 	glog.Flush()
 }
 
@@ -77,7 +90,9 @@ func listHelm(namespace, kubeToken, apiServer string) {
 }
 
 //export install
-func install(namespace string, kubeToken string, apiServer string, releaseName string, chartName string, setArgs string) *C.char {
+// TODO: Do we need to make 'overrideArgs' optional?
+// TODO: If so, emulate it (perhaps via variadic functions) since Golang doesn't support optional parameters :(
+func install(namespace string, kubeToken string, apiServer string, releaseName string, chartName string, overrideArgs string) *C.char {
 	// cli.New() gets the deployment namespace from env variable so we're setting it below
 	// namespace we pass into actionConfig.Init sets the release namespace, not the deployment namespace
 	// TODO see if we can create a custom EnvSettings with values below overridden instead of setting env variables
@@ -98,7 +113,7 @@ func install(namespace string, kubeToken string, apiServer string, releaseName s
 	client.Namespace = namespace
 	client.ReleaseName = releaseName
 	client.Atomic = true
-	client.DryRun = true
+	//client.DryRun = true
 
 	cp, err := client.ChartPathOptions.LocateChart(chartName, settings)
 	if err != nil {
@@ -124,19 +139,17 @@ func install(namespace string, kubeToken string, apiServer string, releaseName s
 	}
 
 	// Add --set overrides in the form of comma-separated key=value pairs
-	if err := strvals.ParseInto(setArgs, values); err != nil {
+	if err := strvals.ParseInto(overrideArgs, values); err != nil {
 		log.Fatal(errors.Wrap(err, "failed parsing --set data"))
 	}
 	
-	rls, err := client.Run(chartRequested, values)
-	fmt.Printf("%+v", "err is ", err)
-	fmt.Printf("%+v", "rls is ", *rls)
+	_, err = client.Run(chartRequested, values)
 	if err != nil {
+		fmt.Printf("%+v", "\nerr is ", err, "\n")
 		return C.CString(err.Error())
 	}
 
-	flag.Parse()
-	glog.Info("\nFinished installing release: ", releaseName)
+	glog.Info("\n\nFinished installing release: ", releaseName)
 
 	return C.CString("ok")
 }
