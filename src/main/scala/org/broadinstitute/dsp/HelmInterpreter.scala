@@ -17,7 +17,7 @@ class Helm[F[_]: ContextShift](blocker: Blocker,
 
   def installChart(release: Release,
                    chart: Chart,
-                   values: Value
+                   values: Values
              ): Kleisli[F, AuthContext, Unit] = {
     for {
       ctx <- Kleisli.ask[F, AuthContext]
@@ -25,9 +25,9 @@ class Helm[F[_]: ContextShift](blocker: Blocker,
         ctx.namespace,
         ctx.kubeToken,
         ctx.kubeApiServer,
-        release.asString,
-        chart.asString,
-        values.asString
+        release,
+        chart,
+        values
       ))))
       _ <- Kleisli.liftF(translateResult("helm installChart", r))
     } yield ()
