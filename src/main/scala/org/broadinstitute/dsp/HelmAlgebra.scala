@@ -7,9 +7,9 @@ import scala.util.control.NoStackTrace
 trait HelmAlgebra[F[_]] {
 
   def installChart(
-               releaseName: String,
-               chartName: String,
-               values: String
+                    release: Release,
+                    chart: Chart,
+                    values: Value
              ): Kleisli[F, AuthContext, Unit]
 
   def listHelm(): Kleisli[F, AuthContext, Unit]
@@ -30,3 +30,6 @@ final case class AuthContext(
 final case class Namespace(asString: String) extends AnyVal
 final case class KubeToken(asString: String) extends AnyVal
 final case class KubeApiServer(asString: String) extends AnyVal
+final case class Release(asString: String) extends AnyVal
+final case class Chart(asString: String) extends AnyVal
+final case class Value(asString: String) extends AnyVal

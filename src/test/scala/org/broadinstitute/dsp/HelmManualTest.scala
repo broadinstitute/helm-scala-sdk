@@ -29,9 +29,9 @@ final class HelmManualTest(namespace: String, token: String, apiServer: String) 
     KubeApiServer(apiServer)
   )
 
-  def installChart(release: String, chart: String, values: String): Unit = {
+  def callInstallChart(release: String, chart: String, values: String): Unit = {
     helmClient
-      .installChart(release, chart, values)
+      .installChart(Release(release), Chart(chart), Value(values))
       .run(authContext)
       .unsafeRunSync()
   }

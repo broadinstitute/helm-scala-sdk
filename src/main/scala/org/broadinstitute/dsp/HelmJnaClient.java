@@ -38,9 +38,9 @@ public interface HelmJnaClient extends Library {
              GoString.ByValue namespace,
              GoString.ByValue kubeToken,
              GoString.ByValue kubeApiServer,
-             GoString.ByValue releaseName,
-             GoString.ByValue chartName,
-             GoString.ByValue overrideValues
+             GoString.ByValue release,
+             GoString.ByValue chart,
+             GoString.ByValue values
            );
 
   public String uninstallRelease(

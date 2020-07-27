@@ -15,9 +15,9 @@ class Helm[F[_]: ContextShift](blocker: Blocker,
     "helm",
     classOf[HelmJnaClient])
 
-  def installChart(releaseName: String,
-                   chartName: String,
-                   values: String
+  def installChart(release: Release,
+                   chart: Chart,
+                   values: Value
              ): Kleisli[F, AuthContext, Unit] = {
     for {
       ctx <- Kleisli.ask[F, AuthContext]
@@ -25,8 +25,8 @@ class Helm[F[_]: ContextShift](blocker: Blocker,
         ctx.namespace,
         ctx.kubeToken,
         ctx.kubeApiServer,
-        releaseName,
-        chartName,
+        release,
+        chart,
         values
       ))))
       _ <- Kleisli.liftF(translateResult("helm installChart", r))
@@ -60,8 +60,8 @@ class Helm[F[_]: ContextShift](blocker: Blocker,
   }
 
   def translateResult(cmd: String, result: String): F[Unit] = result match {
-    case "ok" => println(s"The command '${cmd}' succeeded"); logger.info(s"The command '${cmd}' succeeded")
-    case s => println(s"The command '${cmd}' failed with exception: ${s}"); F.raiseError(HelmException(s))
+    case "ok" => logger.info(s"The command '${cmd}' succeeded")
+    case s => F.raiseError(HelmException(s))
   }
 
   private def blockingF[A](fa: F[A]): F[A] = concurrencyBound.withPermit(blocker.blockOn(fa))
