@@ -101,7 +101,7 @@ func installChart(namespace string, kubeToken string, apiServer string, releaseN
 	actionConfig := new(action.Configuration)
 	// You can pass an empty string instead of settings.Namespace() to list all namespaces
 	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
-		log.Fatalf("%+v", err)
+		log.Printf("%+v\n", err)
 		return C.CString(err.Error())
 	}
 
@@ -114,14 +114,16 @@ func installChart(namespace string, kubeToken string, apiServer string, releaseN
 
 	cp, err := client.ChartPathOptions.LocateChart(chartName, settings)
 	if err != nil {
-		log.Fatalf("%+v", err)
+		log.Printf("%+v", err)
+		return C.CString(err.Error())
+
 	}
 
 	// Check chart dependencies to make sure all are present in /charts
 	chartRequested, err := loader.Load(cp)
 	if err != nil {
-		log.Fatalf("%+v", err)
-	}
+		log.Printf("%+v", err)
+		return C.CString(err.Error())	}
 
 	// Adapted from the example below to override chart values as in CLI --set
 	// https://github.com/PrasadG193/helm-clientgo-example
@@ -131,17 +133,19 @@ func installChart(namespace string, kubeToken string, apiServer string, releaseN
 	// Combine overrides from different sources, if any
 	values, err := valueOpts.MergeValues(providers)
 	if err != nil {
-		log.Fatalf("%+v", err)
-	}
+		log.Printf("%+v", err)
+		return C.CString(err.Error())	}
 
 	// Add --set overrides in the form of comma-separated key=value pairs
 	if err := strvals.ParseInto(overrideValues, values); err != nil {
-		log.Fatal("Failed parsing --set values", err)
+		log.Printf("%+v", "Failed parsing --set values", err)
+		return C.CString(err.Error())
 	}
 	
 	_, err = client.Run(chartRequested, values)
 	if err != nil {
-		log.Fatalf("%+v", "\nerr is ", err, "\n")
+		log.Printf("%+v", "\nerr is ", err, "\n")
+		return C.CString(err.Error())
 	}
 
 	log.Println("\n\nFinished installing release: ", releaseName)
