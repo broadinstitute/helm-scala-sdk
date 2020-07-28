@@ -34,13 +34,13 @@ public interface HelmJnaClient extends Library {
   }
 
   // Foreign functions
-  public String install(
+  public String installChart(
              GoString.ByValue namespace,
              GoString.ByValue kubeToken,
              GoString.ByValue kubeApiServer,
-             GoString.ByValue releaseName,
-             GoString.ByValue chartName,
-             GoString.ByValue filePath
+             GoString.ByValue release,
+             GoString.ByValue chart,
+             GoString.ByValue values
            );
 
   public String uninstallRelease(

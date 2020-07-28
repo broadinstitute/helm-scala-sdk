@@ -1,6 +1,6 @@
-module helm.sh/helm/v3@v3.2.0
+module helm.sh/helm/v3@v3.2.4
 
-go 1.13
+go 1.14
 
 replace (
 	// github.com/Azure/go-autorest/autorest has different versions for the Go

@@ -11,54 +11,56 @@ import scala.language.implicitConversions
 
 class Helm[F[_]: ContextShift](blocker: Blocker,
                                concurrencyBound: Semaphore[F])(implicit logger: Logger[F], F: Async[F]) {
-  val helClient = Native.load(
+  val helmClient = Native.load(
     "helm",
     classOf[HelmJnaClient])
 
-  def install(releaseName: String,
-             chartName: String,
-             filePath: String
+  def installChart(release: Release,
+                   chart: Chart,
+                   values: Values
              ): Kleisli[F, AuthContext, Unit] = {
     for {
       ctx <- Kleisli.ask[F, AuthContext]
-      r <- Kleisli.liftF(blockingF(F.delay(helClient.install(
+      r <- Kleisli.liftF(blockingF(F.delay(helmClient.installChart(
         ctx.namespace,
         ctx.kubeToken,
         ctx.kubeApiServer,
-        releaseName,
-        chartName,
-        filePath
+        release,
+        chart,
+        values
       ))))
-      _ <- Kleisli.liftF(translateResult("helm install", r))
+      _ <- Kleisli.liftF(translateResult("helm installChart", r))
     } yield ()
   }
 
   def listHelm(): Kleisli[F, AuthContext, Unit] = {
     for {
       ctx <- Kleisli.ask[F, AuthContext]
-      _ <- Kleisli.liftF(blockingF(F.delay(helClient.listHelm(
+      _ <- Kleisli.liftF(blockingF(F.delay(helmClient.listHelm(
         ctx.namespace,
         ctx.kubeToken,
         ctx.kubeApiServer
       ))))
-      _ <- Kleisli.liftF(translateResult("helm list", "ok")) //make listHelm return String
+      // TODO: Make 'helm list' return String
+      _ <- Kleisli.liftF(translateResult("helm list", "ok"))
     } yield ()
   }
 
   def uninstall(): Kleisli[F, AuthContext, Unit] = {
     for {
       ctx <- Kleisli.ask[F, AuthContext]
-      _ <- Kleisli.liftF(blockingF(F.delay(helClient.uninstallRelease(
+      _ <- Kleisli.liftF(blockingF(F.delay(helmClient.uninstallRelease(
         ctx.namespace,
         ctx.kubeToken,
         ctx.kubeApiServer
       ))))
-      _ <- Kleisli.liftF(translateResult("helm list", "ok")) //make listHelm return String
+      // TODO: Make 'helm uninstall' return String
+      _ <- Kleisli.liftF(translateResult("helm list", "ok"))
     } yield ()
   }
 
   def translateResult(cmd: String, result: String): F[Unit] = result match {
-    case "ok" => logger.info(s"${cmd} succeeded")
+    case "ok" => logger.info(s"The command '${cmd}' succeeded")
     case s => F.raiseError(HelmException(s))
   }
 

@@ -3,9 +3,10 @@ package main
 import "C"
 
 import (
-	"io/ioutil"
+	"flag"
+	"fmt"
+	"helm.sh/helm/v3/pkg/strvals"
 	"log"
-	"net/url"
 	"os"
 	"strings"
 
@@ -13,10 +14,50 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"sigs.k8s.io/yaml"
+	"helm.sh/helm/v3/pkg/kube"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
+
+/*
+	Example command line to run from within the directory this file is in:
+		go run main.go \
+			-logtostderr=true -stderrthreshold=INFO \
+			my-namespace my-kube-token-string https://12.34.567.890 bitnami/nginx key1=v1,key2.key3=v2
+*/
+func main() {
+	flag.Parse()
+	progArgs := flag.Args()
+	lenProgArgs := len(progArgs)
+
+	if (lenProgArgs != 5) && (lenProgArgs != 6)  {
+		fmt.Println("Expected args: <namespace> <kube token> <api server> <release name> <chart name> <values>",
+			"\n\nFound:\n", strings.Join(progArgs, "\n\n\t"))
+		return
+	}
+
+	namespace := progArgs[0]
+	kubeToken := progArgs[1]
+	apiServer := progArgs[2]
+	releaseName := progArgs[3]
+	chartName := progArgs[4]
+	overrideValues := ""
+	if len(progArgs) == 6 {
+		overrideValues = progArgs[5]
+	}
+
+	installChart(
+		namespace,
+		kubeToken,
+		apiServer,
+		releaseName,
+		chartName,
+		overrideValues,
+	)
+
+	glog.Flush()
+}
 
 //export listHelm
 func listHelm(namespace, kubeToken, apiServer string) {
@@ -24,10 +65,9 @@ func listHelm(namespace, kubeToken, apiServer string) {
 	settings.KubeToken = kubeToken
 	settings.KubeAPIServer = apiServer
 
-	// kubConfig := kube.GetConfig("/Users/qi/.kube/config  ", "", "galaxy")
+	// kubeConfig := kube.GetConfig("/Users/qi/.kube/config  ", "", "galaxy")
 	actionConfig := new(action.Configuration)
-	// You can pass an empty string instead of settings.Namespace() to list
-	// all namespaces
+	// You can pass an empty string instead of settings.Namespace() to list all namespaces
 	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
 		log.Printf("%+v", err)
 		os.Exit(1)
@@ -47,65 +87,73 @@ func listHelm(namespace, kubeToken, apiServer string) {
 	}
 }
 
-//export install
-func install(namespace, kubeToken, apiServer, releaseName, chartName, filePath string) *C.char {
+//export installChart
+// TODO: Do we need to make 'overrideValues' optional?
+// TODO: If so, emulate it (perhaps via variadic functions) since Golang doesn't support optional parameters :(
+// `HELM_DRIVER` env variable is expected to have been set to the right value (which is likely to be "secret")
+func installChart(namespace string, kubeToken string, apiServer string, releaseName string, chartName string, overrideValues string) *C.char {
 	settings := cli.New()
 
+	settings.KubeToken = kubeToken
+	settings.KubeAPIServer = apiServer
+
+	// 'namespace' we pass into actionConfig.Init() down below sets the release namespace and not Kubernetes resources' namespace
+	// Therefore we take this additional step of creating our own RESTClientGetter instead of using 'settings.RESTClientGetter()'
+	restClientGetter := kube.GetConfig(settings.KubeConfig, settings.KubeContext, namespace)
+
 	actionConfig := new(action.Configuration)
-	// You can pass an empty string instead of settings.Namespace() to list
-	// all namespaces
-	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
-		log.Printf("%+v", err)
+	// You can pass an empty string instead of settings.Namespace() to list all namespaces
+	if err := actionConfig.Init(restClientGetter, namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+		log.Printf("%+v\n", err)
 		return C.CString(err.Error())
 	}
 
 	client := action.NewInstall(actionConfig)
+	// TODO: Should we not update all Helm repos by default, and instead define a separate API for it?
 	client.DependencyUpdate = true
 	client.Namespace = namespace
 	client.ReleaseName = releaseName
 	client.Atomic = true
-	// client.DryRun = true
+	//client.DryRun = true
 
 	cp, err := client.ChartPathOptions.LocateChart(chartName, settings)
 	if err != nil {
+		log.Printf("%+v", err)
 		return C.CString(err.Error())
+
 	}
 
 	// Check chart dependencies to make sure all are present in /charts
 	chartRequested, err := loader.Load(cp)
 	if err != nil {
-		return C.CString(err.Error())
-	}
+		log.Printf("%+v", err)
+		return C.CString(err.Error())	}
 
-	p := getter.All(settings)
-	base := map[string]interface{}{
-		"persistence.accessMode":              "ReadWriteMany",
-		"persistence.storageClass":            "nfs",
-		"image.tag":                           "20.01-dev",
-		"service.type":                        "LoadBalancer",
-		"service.port":                        "80",
-		"ingress.enabled":                     "false",
-		"postgresql.persistence.storageClass": "standard",
-	}
+	// Adapted from the example below to override chart values as in CLI --set
+	// https://github.com/PrasadG193/helm-clientgo-example
+	providers := getter.All(settings)
+	valueOpts := &values.Options{}
 
-	currentMap := map[string]interface{}{}
-	bytes, err := readFile(filePath, p)
+	// Combine overrides from different sources, if any
+	values, err := valueOpts.MergeValues(providers)
 	if err != nil {
+		log.Printf("%+v", err)
+		return C.CString(err.Error())	}
+
+	// Add --set overrides in the form of comma-separated key=value pairs
+	if err := strvals.ParseInto(overrideValues, values); err != nil {
+		log.Printf("%+v", "Failed parsing --set values", err)
 		return C.CString(err.Error())
 	}
-
-	if err := yaml.Unmarshal(bytes, &currentMap); err != nil {
-		return C.CString("failed to parse values")
-	}
-	// Merge with the previous map
-	finalOpts := mergeMaps(base, currentMap)
-
-	_, err = client.Run(chartRequested, finalOpts)
+	
+	_, err = client.Run(chartRequested, values)
 	if err != nil {
+		log.Printf("%+v", "\nerr is ", err, "\n")
 		return C.CString(err.Error())
 	}
 
-	glog.Info("Finished installing %s", releaseName)
+	log.Println("\n\nFinished installing release: ", releaseName)
+
 	return C.CString("ok")
 }
 
@@ -115,60 +163,15 @@ func uninstallRelease(namespace, kubeToken, apiServer, releaseName string) *C.ch
 	actionConfig := new(action.Configuration)
 	err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), glog.Infof)
 	if err != nil {
-		return err.Error()
+		return C.CString(err.Error())
 	}
 
-	if err != nil {
-		return err.Error()
-	}
 	client := action.NewUninstall(actionConfig)
 	_, err = client.Run(releaseName)
 	if err != nil {
-		return err.Error()
+		return C.CString(err.Error())
 	}
 
 	glog.Info("Finished installing %s", releaseName)
-	return "ok"
-}
-
-func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{}, len(a))
-	for k, v := range a {
-		out[k] = v
-	}
-	for k, v := range b {
-		if v, ok := v.(map[string]interface{}); ok {
-			if bv, ok := out[k]; ok {
-				if bv, ok := bv.(map[string]interface{}); ok {
-					out[k] = mergeMaps(bv, v)
-					continue
-				}
-			}
-		}
-		out[k] = v
-	}
-	return out
-}
-
-// readFile load a file from stdin, the local directory, or a remote file with a url.
-func readFile(filePath string, p getter.Providers) ([]byte, error) {
-	if strings.TrimSpace(filePath) == "-" {
-		return ioutil.ReadAll(os.Stdin)
-	}
-	u, _ := url.Parse(filePath)
-
-	g, err := p.ByScheme(u.Scheme)
-	if err != nil {
-		return ioutil.ReadFile(filePath)
-	}
-	data, err := g.Get(filePath, getter.WithURL(filePath))
-	return data.Bytes(), err
-}
-
-func main() {
-	// 	listHelm(
-	// 		"galaxy",
-	// 		"your token token",
-	// 		"https://35.225.164.84",
-	// 	)
+	return C.CString("ok")
 }
