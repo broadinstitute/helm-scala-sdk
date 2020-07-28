@@ -16,6 +16,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/kube"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
@@ -89,23 +90,26 @@ func listHelm(namespace, kubeToken, apiServer string) {
 //export installChart
 // TODO: Do we need to make 'overrideValues' optional?
 // TODO: If so, emulate it (perhaps via variadic functions) since Golang doesn't support optional parameters :(
+// `HELM_DRIVER` env variable is expected to have been set to the right value (which is likely to be "secret")
 func installChart(namespace string, kubeToken string, apiServer string, releaseName string, chartName string, overrideValues string) *C.char {
-	// cli.New() gets the deployment namespace from env variable so we're setting it below
-	// namespace we pass into actionConfig.Init sets the release namespace, not the deployment namespace
-	// TODO see if we can create a custom EnvSettings with values below overridden instead of setting env variables
-	os.Setenv("HELM_NAMESPACE", namespace)
-	os.Setenv("HELM_KUBETOKEN", kubeToken)
-	os.Setenv("HELM_KUBEAPISERVER", apiServer)
 	settings := cli.New()
+
+	settings.KubeToken = kubeToken
+	settings.KubeAPIServer = apiServer
+
+	// 'namespace' we pass into actionConfig.Init() down below sets the release namespace and not Kubernetes resources' namespace
+	// Therefore we take this additional step of creating our own RESTClientGetter instead of using 'settings.RESTClientGetter()'
+	restClientGetter := kube.GetConfig(settings.KubeConfig, settings.KubeContext, namespace)
 
 	actionConfig := new(action.Configuration)
 	// You can pass an empty string instead of settings.Namespace() to list all namespaces
-	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+	if err := actionConfig.Init(restClientGetter, namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
 		log.Printf("%+v\n", err)
 		return C.CString(err.Error())
 	}
 
 	client := action.NewInstall(actionConfig)
+	// TODO: Should we not update all Helm repos by default, and instead define a separate API for it?
 	client.DependencyUpdate = true
 	client.Namespace = namespace
 	client.ReleaseName = releaseName
