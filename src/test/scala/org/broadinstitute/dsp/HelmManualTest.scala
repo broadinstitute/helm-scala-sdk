@@ -29,17 +29,15 @@ final class HelmManualTest(namespace: String, token: String, apiServer: String) 
     KubeApiServer(apiServer)
   )
 
-  def callInstallChart(release: String, chart: String, values: String): Unit = {
+  def callInstallChart(release: String, chart: String, values: String): Unit =
     helmClient
       .installChart(Release(release), Chart(chart), Values(values))
       .run(authContext)
       .unsafeRunSync()
-  }
 
-  def listHelm(): Unit = {
+  def listHelm(): Unit =
     helmClient
       .listHelm()
       .run(authContext)
       .unsafeRunSync()
-  }
 }
