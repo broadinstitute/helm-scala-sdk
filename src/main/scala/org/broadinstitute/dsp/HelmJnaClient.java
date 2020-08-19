@@ -38,6 +38,7 @@ public interface HelmJnaClient extends Library {
              GoString.ByValue namespace,
              GoString.ByValue kubeToken,
              GoString.ByValue kubeApiServer,
+             GoString.ByValue caCertFile,
              GoString.ByValue release,
              GoString.ByValue chart,
              GoString.ByValue values
@@ -46,11 +47,13 @@ public interface HelmJnaClient extends Library {
   public String uninstallRelease(
           GoString.ByValue namespace,
           GoString.ByValue kubeToken,
-          GoString.ByValue kubeApiServer
+          GoString.ByValue kubeApiServer,
+          GoString.ByValue caCertFile
   );
 
   public void listHelm(GoString.ByValue namespace,
                        GoString.ByValue kubeToken,
-                       GoString.ByValue kubeApiServer
+                       GoString.ByValue kubeApiServer,
+                       GoString.ByValue caCertFile
                        );
 }

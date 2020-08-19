@@ -9,6 +9,7 @@ object implicits {
   implicit val showNameSpace: Show[Namespace] = Show.show[Namespace](_.asString)
   implicit val showKubeToken: Show[KubeToken] = Show.show[KubeToken](_.asString)
   implicit val showKubeApiServer: Show[KubeApiServer] = Show.show[KubeApiServer](_.asString)
+  implicit val showCaCertFile: Show[CaCertFile] = Show.show[CaCertFile](_.path.normalize().toString)
   implicit val showRelease: Show[Release] = Show.show[Release](_.asString)
   implicit val showChart: Show[Chart] = Show.show[Chart](_.asString)
   implicit val showValues: Show[Values] = Show.show[Values](_.asString)

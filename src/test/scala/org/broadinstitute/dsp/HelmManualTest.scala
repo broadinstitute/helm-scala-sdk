@@ -1,5 +1,7 @@
 package org.broadinstitute.dsp
 
+import java.nio.file.Path
+
 import cats.effect.IO
 
 /**
@@ -7,8 +9,8 @@ import cats.effect.IO
  * sbt -Djna.library.path=/Users/qi/workspace/helm-scala-sdk/helm-go-lib test:console
  *
  * Once inside sbt shell:
- *    val namespace = ...; val token = ...; ...
- *    val test = new org.broadinstitute.dsp.HelmManualTest(namespace, token, apiServer)
+ *    val namespace = ...; val token = ...; val caCertFile = ...;
+ *    val test = new org.broadinstitute.dsp.HelmManualTest(namespace, token, apiServer, caCertFile)
  *    test.installChart(release, chart, values)
  *
  * KubeApiServer and KubeToken can be retrieved via kubectl as described below:
@@ -21,12 +23,14 @@ import cats.effect.IO
  *      --serviceaccount=<your-namespace>:<your-serviceaccount> \
  *      --namespace=<your-namespace>
  */
-final class HelmManualTest(namespace: String, token: String, apiServer: String) extends HelmScalaSdkTestSuite {
+final class HelmManualTest(namespace: String, token: String, apiServer: String, caCertFile: Path)
+    extends HelmScalaSdkTestSuite {
   val helmClient = new Helm[IO](blocker, semaphore)
   val authContext = AuthContext(
     Namespace(namespace), // "" is interpreted as all namespaces
     KubeToken(token),
-    KubeApiServer(apiServer)
+    KubeApiServer(apiServer),
+    CaCertFile(caCertFile)
   )
 
   def callInstallChart(release: String, chart: String, values: String): Unit =

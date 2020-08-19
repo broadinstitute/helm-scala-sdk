@@ -24,6 +24,7 @@ class Helm[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Semaphore[F])
               ctx.namespace,
               ctx.kubeToken,
               ctx.kubeApiServer,
+              ctx.caCertFile,
               release,
               chart,
               values
@@ -43,7 +44,8 @@ class Helm[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Semaphore[F])
             helmClient.listHelm(
               ctx.namespace,
               ctx.kubeToken,
-              ctx.kubeApiServer
+              ctx.kubeApiServer,
+              ctx.caCertFile
             )
           )
         )
@@ -61,7 +63,8 @@ class Helm[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Semaphore[F])
             helmClient.uninstallRelease(
               ctx.namespace,
               ctx.kubeToken,
-              ctx.kubeApiServer
+              ctx.kubeApiServer,
+              ctx.caCertFile
             )
           )
         )
