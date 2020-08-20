@@ -63,12 +63,12 @@ func main() {
 
 //export listHelm
 func listHelm(namespace string, kubeToken string, apiServer string, caFile string) {
-    var kubeConfig *genericclioptions.ConfigFlags
-    kubeConfig = genericclioptions.NewConfigFlags(false)
-    kubeConfig.APIServer = &apiServer
-    kubeConfig.BearerToken = &kubeToken
-    kubeConfig.CAFile = &caFile
-    kubeConfig.Namespace = &namespace
+	var kubeConfig *genericclioptions.ConfigFlags
+	kubeConfig = genericclioptions.NewConfigFlags(false)
+	kubeConfig.APIServer = &apiServer
+	kubeConfig.BearerToken = &kubeToken
+	kubeConfig.CAFile = &caFile
+	kubeConfig.Namespace = &namespace
 
 	actionConfig := new(action.Configuration)
 	// You can pass an empty string instead of settings.Namespace() to list all namespaces
@@ -98,18 +98,14 @@ func listHelm(namespace string, kubeToken string, apiServer string, caFile strin
 func installChart(namespace string, kubeToken string, apiServer string, caFile string, releaseName string, chartName string, overrideValues string) *C.char {
 	var kubeConfig *genericclioptions.ConfigFlags
 	kubeConfig = genericclioptions.NewConfigFlags(false)
-    kubeConfig.APIServer = &apiServer
-    kubeConfig.BearerToken = &kubeToken
-    kubeConfig.CAFile = &caFile
-    kubeConfig.Namespace = &namespace
+	kubeConfig.APIServer = &apiServer
+	kubeConfig.BearerToken = &kubeToken
+	kubeConfig.CAFile = &caFile
+	kubeConfig.Namespace = &namespace
 
-    settings := cli.New()
-    settings.KubeToken = kubeToken
-    settings.KubeAPIServer = apiServer
-
-	// 'namespace' we pass into actionConfig.Init() down below sets the release namespace and not Kubernetes resources' namespace
-	// Therefore we take this additional step of creating our own RESTClientGetter instead of using 'settings.RESTClientGetter()'
-	//restClientGetter := kube.GetConfig(settings.KubeConfig, settings.KubeContext, namespace)
+	settings := cli.New()
+	settings.KubeToken = kubeToken
+	settings.KubeAPIServer = apiServer
 
 	actionConfig := new(action.Configuration)
 	// You can pass an empty string instead of settings.Namespace() to list all namespaces
@@ -170,14 +166,13 @@ func installChart(namespace string, kubeToken string, apiServer string, caFile s
 //export uninstallRelease
 func uninstallRelease(namespace string, kubeToken string, apiServer string, caFile string, releaseName string) *C.char {
 	var kubeConfig *genericclioptions.ConfigFlags
-    kubeConfig = genericclioptions.NewConfigFlags(false)
-    kubeConfig.APIServer = &apiServer
-    kubeConfig.BearerToken = &kubeToken
-    kubeConfig.CAFile = &caFile
-    kubeConfig.Namespace = &namespace
+	kubeConfig = genericclioptions.NewConfigFlags(false)
+	kubeConfig.APIServer = &apiServer
+	kubeConfig.BearerToken = &kubeToken
+	kubeConfig.CAFile = &caFile
+	kubeConfig.Namespace = &namespace
 
     actionConfig := new(action.Configuration)
-
 	err := actionConfig.Init(kubeConfig, namespace, os.Getenv("HELM_DRIVER"), glog.Infof)
 	if err != nil {
 		return C.CString(err.Error())
