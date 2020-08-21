@@ -9,7 +9,7 @@ import cats.effect.IO
  * sbt -Djna.library.path=/Users/qi/workspace/helm-scala-sdk/helm-go-lib test:console
  *
  * Once inside sbt shell:
- *    val namespace = ...; val token = ...; val caCertFile = ...;
+ *    val namespace = ...; val token = ...; val apiServer = ...; val caCertFile = ...;
  *    val test = new org.broadinstitute.dsp.HelmManualTest(namespace, token, apiServer, caCertFile)
  *    test.installChart(release, chart, values)
  *
@@ -25,7 +25,7 @@ import cats.effect.IO
  */
 final class HelmManualTest(namespace: String, token: String, apiServer: String, caCertFile: Path)
     extends HelmScalaSdkTestSuite {
-  val helmClient = new Helm[IO](blocker, semaphore)
+  val helmClient = new HelmInterpreter[IO](blocker, semaphore)
   val authContext = AuthContext(
     Namespace(namespace), // "" is interpreted as all namespaces
     KubeToken(token),

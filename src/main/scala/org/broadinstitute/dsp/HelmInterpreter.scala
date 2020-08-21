@@ -8,8 +8,8 @@ import io.chrisdavenport.log4cats.Logger
 import org.broadinstitute.dsp.implicits._
 import scala.language.implicitConversions
 
-class Helm[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Semaphore[F])(implicit logger: Logger[F],
-                                                                                 F: Async[F])
+class HelmInterpreter[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Semaphore[F])(implicit logger: Logger[F],
+                                                                                            F: Async[F])
     extends HelmAlgebra[F] {
 
   val helmClient = Native.load("helm", classOf[HelmJnaClient])
