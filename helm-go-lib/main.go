@@ -16,23 +16,23 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
-	"helm.sh/helm/v3/pkg/kube"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 /*
 	Example command line to run from within the directory this file is in:
 		go run main.go \
 			-logtostderr=true -stderrthreshold=INFO \
-			my-namespace my-kube-token-string https://12.34.567.890 bitnami/nginx key1=v1,key2.key3=v2
+			my-namespace my-kube-token-string https://12.34.567.890 ./ca_file bitnami/nginx key1=v1,key2.key3=v2
 */
 func main() {
 	flag.Parse()
 	progArgs := flag.Args()
 	lenProgArgs := len(progArgs)
 
-	if (lenProgArgs != 5) && (lenProgArgs != 6)  {
-		fmt.Println("Expected args: <namespace> <kube token> <api server> <release name> <chart name> <values>",
+	if (lenProgArgs != 6) && (lenProgArgs != 7) {
+		fmt.Println("Expected args: <namespace> <kube token> <api server> <ca file> <release name> <chart name> <values>",
 			"\n\nFound:\n", strings.Join(progArgs, "\n\n\t"))
 		return
 	}
@@ -40,17 +40,19 @@ func main() {
 	namespace := progArgs[0]
 	kubeToken := progArgs[1]
 	apiServer := progArgs[2]
-	releaseName := progArgs[3]
-	chartName := progArgs[4]
+	caFile := progArgs[3]
+	releaseName := progArgs[4]
+	chartName := progArgs[5]
 	overrideValues := ""
-	if len(progArgs) == 6 {
-		overrideValues = progArgs[5]
+	if len(progArgs) == 7 {
+		overrideValues = progArgs[6]
 	}
 
 	installChart(
 		namespace,
 		kubeToken,
 		apiServer,
+		caFile,
 		releaseName,
 		chartName,
 		overrideValues,
@@ -60,50 +62,34 @@ func main() {
 }
 
 //export listHelm
-func listHelm(namespace, kubeToken, apiServer string) {
-	settings := cli.New()
-	settings.KubeToken = kubeToken
-	settings.KubeAPIServer = apiServer
-
-	// kubeConfig := kube.GetConfig("/Users/qi/.kube/config  ", "", "galaxy")
-	actionConfig := new(action.Configuration)
-	// You can pass an empty string instead of settings.Namespace() to list all namespaces
-	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
-		log.Printf("%+v", err)
-		os.Exit(1)
+func listHelm(namespace string, kubeToken string, apiServer string, caFile string) *C.char {
+	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
+	if err != nil {
+		log.Printf("%+v\n", err)
+		return C.CString(err.Error())
 	}
-
 	client := action.NewList(actionConfig)
 	// Only list deployed
 	client.Deployed = true
 	results, err := client.Run()
 	if err != nil {
-		log.Printf("%+v", err)
-		os.Exit(1)
+		log.Printf("%+v\n", err)
+		return C.CString(err.Error())
 	}
 
 	for _, rel := range results {
 		log.Printf("%+v", rel)
 	}
+	return C.CString("ok")
 }
 
 //export installChart
 // TODO: Do we need to make 'overrideValues' optional?
 // TODO: If so, emulate it (perhaps via variadic functions) since Golang doesn't support optional parameters :(
 // `HELM_DRIVER` env variable is expected to have been set to the right value (which is likely to be "secret")
-func installChart(namespace string, kubeToken string, apiServer string, releaseName string, chartName string, overrideValues string) *C.char {
-	settings := cli.New()
-
-	settings.KubeToken = kubeToken
-	settings.KubeAPIServer = apiServer
-
-	// 'namespace' we pass into actionConfig.Init() down below sets the release namespace and not Kubernetes resources' namespace
-	// Therefore we take this additional step of creating our own RESTClientGetter instead of using 'settings.RESTClientGetter()'
-	restClientGetter := kube.GetConfig(settings.KubeConfig, settings.KubeContext, namespace)
-
-	actionConfig := new(action.Configuration)
-	// You can pass an empty string instead of settings.Namespace() to list all namespaces
-	if err := actionConfig.Init(restClientGetter, namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+func installChart(namespace string, kubeToken string, apiServer string, caFile string, releaseName string, chartName string, overrideValues string) *C.char {
+	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
+	if err != nil {
 		log.Printf("%+v\n", err)
 		return C.CString(err.Error())
 	}
@@ -116,11 +102,14 @@ func installChart(namespace string, kubeToken string, apiServer string, releaseN
 	client.Atomic = true
 	//client.DryRun = true
 
+	settings := cli.New()
+	settings.KubeToken = kubeToken
+	settings.KubeAPIServer = apiServer
+
 	cp, err := client.ChartPathOptions.LocateChart(chartName, settings)
 	if err != nil {
 		log.Printf("%+v", err)
 		return C.CString(err.Error())
-
 	}
 
 	// Check chart dependencies to make sure all are present in /charts
@@ -145,7 +134,7 @@ func installChart(namespace string, kubeToken string, apiServer string, releaseN
 		log.Printf("%+v", "Failed parsing --set values", err)
 		return C.CString(err.Error())
 	}
-	
+
 	_, err = client.Run(chartRequested, values)
 	if err != nil {
 		log.Printf("%+v", "\nerr is ", err, "\n")
@@ -158,20 +147,40 @@ func installChart(namespace string, kubeToken string, apiServer string, releaseN
 }
 
 //export uninstallRelease
-func uninstallRelease(namespace, kubeToken, apiServer, releaseName string) *C.char {
-	settings := cli.New()
-	actionConfig := new(action.Configuration)
-	err := actionConfig.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), glog.Infof)
+func uninstallRelease(namespace string, kubeToken string, apiServer string, caFile string, releaseName string) *C.char {
+	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
 	if err != nil {
+		log.Printf("%+v\n", err)
 		return C.CString(err.Error())
 	}
 
 	client := action.NewUninstall(actionConfig)
 	_, err = client.Run(releaseName)
 	if err != nil {
+		log.Printf("%+v\n", err)
 		return C.CString(err.Error())
 	}
 
-	glog.Info("Finished installing %s", releaseName)
+	log.Printf("Finished uninstalling %s", releaseName)
 	return C.CString("ok")
+}
+
+func buildActionConfig(namespace string, kubeToken string, apiServer string, caFile string) (actionConfig *action.Configuration, err error) {
+	var kubeConfig *genericclioptions.ConfigFlags
+	kubeConfig = genericclioptions.NewConfigFlags(false)
+	kubeConfig.APIServer = &apiServer
+	kubeConfig.BearerToken = &kubeToken
+	kubeConfig.CAFile = &caFile
+	kubeConfig.Namespace = &namespace
+
+	settings := cli.New()
+	settings.KubeToken = kubeToken
+	settings.KubeAPIServer = apiServer
+
+	actionConfig = new(action.Configuration)
+	if err := actionConfig.Init(kubeConfig, namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+		return nil, err
+	}
+
+	return actionConfig, nil
 }
