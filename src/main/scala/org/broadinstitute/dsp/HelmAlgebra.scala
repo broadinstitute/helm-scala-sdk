@@ -15,7 +15,7 @@ trait HelmAlgebra[F[_]] {
 
   def listHelm(): Kleisli[F, AuthContext, Unit]
 
-  def uninstall(): Kleisli[F, AuthContext, Unit]
+  def uninstall(release: Release): Kleisli[F, AuthContext, Unit]
 }
 
 final case class HelmException(message: String) extends NoStackTrace {

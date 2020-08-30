@@ -44,4 +44,10 @@ final class HelmManualTest(namespace: String, token: String, apiServer: String, 
       .listHelm()
       .run(authContext)
       .unsafeRunSync()
+
+  def callUninstall(release: String): Unit =
+    helmClient
+      .uninstall(Release(release))
+      .run(authContext)
+      .unsafeRunSync()
 }
