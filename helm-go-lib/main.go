@@ -148,7 +148,7 @@ func installChart(namespace string, kubeToken string, apiServer string, caFile s
 }
 
 //export uninstallRelease
-func uninstallRelease(namespace string, kubeToken string, apiServer string, caFile string, releaseName string) *C.char {
+func uninstallRelease(namespace string, kubeToken string, apiServer string, caFile string, releaseName string, keepHistory bool) *C.char {
 	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
 	if err != nil {
 		log.Printf("%+v\n", err)
@@ -156,6 +156,8 @@ func uninstallRelease(namespace string, kubeToken string, apiServer string, caFi
 	}
 
 	client := action.NewUninstall(actionConfig)
+	client.KeepHistory = keepHistory
+
 	_, err = client.Run(releaseName)
 	if err != nil {
 		log.Printf("%+v\n", err)

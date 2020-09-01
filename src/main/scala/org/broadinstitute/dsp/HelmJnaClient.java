@@ -49,7 +49,8 @@ public interface HelmJnaClient extends Library {
           GoString.ByValue kubeToken,
           GoString.ByValue kubeApiServer,
           GoString.ByValue caCertFile,
-          GoString.ByValue release
+          GoString.ByValue release,
+          byte keepHistory
   );
 
   public void listHelm(GoString.ByValue namespace,

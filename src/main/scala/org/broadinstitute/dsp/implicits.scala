@@ -20,4 +20,7 @@ object implicits {
     goString.n = a.show.length
     goString
   }
+
+  implicit def toGoBool(b: Boolean): Byte =
+    if (b) 1 else 0
 }

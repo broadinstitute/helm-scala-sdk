@@ -15,7 +15,9 @@ trait HelmAlgebra[F[_]] {
 
   def listHelm(): Kleisli[F, AuthContext, Unit]
 
-  def uninstall(release: Release): Kleisli[F, AuthContext, Unit]
+  // Set keepHistory to true to make helm retain a record to the release which can make debuggingg easier.
+  // https://helm.sh/docs/intro/using_helm/#helm-uninstall-uninstalling-a-release
+  def uninstall(release: Release, keepHistory: Boolean = false): Kleisli[F, AuthContext, Unit]
 }
 
 final case class HelmException(message: String) extends NoStackTrace {
