@@ -16,8 +16,8 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 /*
@@ -99,7 +99,6 @@ func installChart(namespace string, kubeToken string, apiServer string, caFile s
 	client.DependencyUpdate = true
 	client.Namespace = namespace
 	client.ReleaseName = releaseName
-	client.Atomic = true
 	//client.DryRun = true
 
 	settings := cli.New()
@@ -116,7 +115,8 @@ func installChart(namespace string, kubeToken string, apiServer string, caFile s
 	chartRequested, err := loader.Load(cp)
 	if err != nil {
 		log.Printf("%+v", err)
-		return C.CString(err.Error())	}
+		return C.CString(err.Error())
+	}
 
 	// Adapted from the example below to override chart values as in CLI --set
 	// https://github.com/PrasadG193/helm-clientgo-example
@@ -127,7 +127,8 @@ func installChart(namespace string, kubeToken string, apiServer string, caFile s
 	values, err := valueOpts.MergeValues(providers)
 	if err != nil {
 		log.Printf("%+v", err)
-		return C.CString(err.Error())	}
+		return C.CString(err.Error())
+	}
 
 	// Add --set overrides in the form of comma-separated key=value pairs
 	if err := strvals.ParseInto(overrideValues, values); err != nil {
@@ -147,7 +148,7 @@ func installChart(namespace string, kubeToken string, apiServer string, caFile s
 }
 
 //export uninstallRelease
-func uninstallRelease(namespace string, kubeToken string, apiServer string, caFile string, releaseName string) *C.char {
+func uninstallRelease(namespace string, kubeToken string, apiServer string, caFile string, releaseName string, keepHistory bool) *C.char {
 	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
 	if err != nil {
 		log.Printf("%+v\n", err)
@@ -155,6 +156,8 @@ func uninstallRelease(namespace string, kubeToken string, apiServer string, caFi
 	}
 
 	client := action.NewUninstall(actionConfig)
+	client.KeepHistory = keepHistory
+
 	_, err = client.Run(releaseName)
 	if err != nil {
 		log.Printf("%+v\n", err)

@@ -54,7 +54,7 @@ class HelmInterpreter[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Se
       _ <- Kleisli.liftF(translateResult("helm list", "ok"))
     } yield ()
 
-  override def uninstall(): Kleisli[F, AuthContext, Unit] =
+  override def uninstall(release: Release, keepHistory: Boolean): Kleisli[F, AuthContext, Unit] =
     for {
       ctx <- Kleisli.ask[F, AuthContext]
       _ <- Kleisli.liftF(
@@ -64,13 +64,14 @@ class HelmInterpreter[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Se
               ctx.namespace,
               ctx.kubeToken,
               ctx.kubeApiServer,
-              ctx.caCertFile
+              ctx.caCertFile,
+              release,
+              keepHistory
             )
           )
         )
       )
-      // TODO: Make 'helm uninstall' return String
-      _ <- Kleisli.liftF(translateResult("helm list", "ok"))
+      _ <- Kleisli.liftF(translateResult("helm uninstall", "ok"))
     } yield ()
 
   private def translateResult(cmd: String, result: String): F[Unit] = result match {
