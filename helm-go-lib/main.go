@@ -24,14 +24,14 @@ import (
 	Example command line to run from within the directory this file is in:
 		go run main.go \
 			-logtostderr=true -stderrthreshold=INFO \
-			my-namespace my-kube-token-string https://12.34.567.890 ./ca_file bitnami/nginx key1=v1,key2.key3=v2
+			my-namespace my-kube-token-string https://12.34.567.890 ./ca_file bitnami/nginx 6.0.5 key1=v1,key2.key3=v2
 */
 func main() {
 	flag.Parse()
 	progArgs := flag.Args()
 	lenProgArgs := len(progArgs)
 
-	if (lenProgArgs != 6) && (lenProgArgs != 7) {
+	if (lenProgArgs != 7) && (lenProgArgs != 8) {
 		fmt.Println("Expected args: <namespace> <kube token> <api server> <ca file> <release name> <chart name> <values>",
 			"\n\nFound:\n", strings.Join(progArgs, "\n\n\t"))
 		return
@@ -43,9 +43,10 @@ func main() {
 	caFile := progArgs[3]
 	releaseName := progArgs[4]
 	chartName := progArgs[5]
+	chartVersion := progArgs[6]
 	overrideValues := ""
-	if len(progArgs) == 7 {
-		overrideValues = progArgs[6]
+	if len(progArgs) == 8 {
+		overrideValues = progArgs[7]
 	}
 
 	installChart(
@@ -55,6 +56,7 @@ func main() {
 		caFile,
 		releaseName,
 		chartName,
+		chartVersion,
 		overrideValues,
 	)
 
@@ -87,7 +89,7 @@ func listHelm(namespace string, kubeToken string, apiServer string, caFile strin
 // TODO: Do we need to make 'overrideValues' optional?
 // TODO: If so, emulate it (perhaps via variadic functions) since Golang doesn't support optional parameters :(
 // `HELM_DRIVER` env variable is expected to have been set to the right value (which is likely to be "secret")
-func installChart(namespace string, kubeToken string, apiServer string, caFile string, releaseName string, chartName string, overrideValues string) *C.char {
+func installChart(namespace string, kubeToken string, apiServer string, caFile string, releaseName string, chartName string, chartVersion string, overrideValues string) *C.char {
 	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
 	if err != nil {
 		log.Printf("%+v\n", err)
@@ -97,6 +99,7 @@ func installChart(namespace string, kubeToken string, apiServer string, caFile s
 	client := action.NewInstall(actionConfig)
 	// TODO: Should we not update all Helm repos by default, and instead define a separate API for it?
 	client.DependencyUpdate = true
+	client.Version = chartVersion
 	client.Namespace = namespace
 	client.ReleaseName = releaseName
 	//client.DryRun = true
@@ -175,10 +178,6 @@ func buildActionConfig(namespace string, kubeToken string, apiServer string, caF
 	kubeConfig.BearerToken = &kubeToken
 	kubeConfig.CAFile = &caFile
 	kubeConfig.Namespace = &namespace
-
-	settings := cli.New()
-	settings.KubeToken = kubeToken
-	settings.KubeAPIServer = apiServer
 
 	actionConfig = new(action.Configuration)
 	if err := actionConfig.Init(kubeConfig, namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {

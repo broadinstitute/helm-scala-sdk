@@ -31,9 +31,10 @@ final case class AuthContext(
   caCertFile: CaCertFile
 )
 
+final case class Chart(name: String, version: String)
+
 final case class Namespace(asString: String) extends AnyVal
 final case class Release(asString: String) extends AnyVal
-final case class Chart(asString: String) extends AnyVal
 
 // If running on GKE, this can be a Google access token as long as it
 // includes GKE scopes.

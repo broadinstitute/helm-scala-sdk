@@ -26,7 +26,8 @@ class HelmInterpreter[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Se
               ctx.kubeApiServer,
               ctx.caCertFile,
               release,
-              chart,
+              chart.name,
+              chart.version,
               values
             )
           )
