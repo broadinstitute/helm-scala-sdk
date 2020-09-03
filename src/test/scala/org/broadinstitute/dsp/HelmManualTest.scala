@@ -11,7 +11,7 @@ import cats.effect.IO
  * Once inside sbt shell:
  *    val namespace = ...; val token = ...; val apiServer = ...; val caCertFile = ...;
  *    val test = new org.broadinstitute.dsp.HelmManualTest(namespace, token, apiServer, caCertFile)
- *    test.installChart(release, chart, values)
+ *    test.callInstallChart(release, chartName, chartVersion, values)
  *
  * KubeApiServer and KubeToken can be retrieved via kubectl as described below:
  * https://kubernetes.io/docs/tasks/administer-cluster/access-cluster-api/#without-kubectl-proxy
@@ -33,9 +33,9 @@ final class HelmManualTest(namespace: String, token: String, apiServer: String, 
     CaCertFile(caCertFile)
   )
 
-  def callInstallChart(release: String, chart: String, values: String): Unit =
+  def callInstallChart(release: String, chartName: String, chartVersion: String, values: String): Unit =
     helmClient
-      .installChart(Release(release), Chart(chart), Values(values))
+      .installChart(Release(release), ChartName(chartName), ChartVersion(chartVersion), Values(values))
       .run(authContext)
       .unsafeRunSync()
 

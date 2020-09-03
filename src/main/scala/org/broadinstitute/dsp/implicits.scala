@@ -11,7 +11,8 @@ object implicits {
   implicit val showKubeApiServer: Show[KubeApiServer] = Show.show[KubeApiServer](_.asString)
   implicit val showCaCertFile: Show[CaCertFile] = Show.show[CaCertFile](_.path.normalize().toString)
   implicit val showRelease: Show[Release] = Show.show[Release](_.asString)
-  implicit val showChart: Show[Chart] = Show.show[Chart](_.asString)
+  implicit val showChartName: Show[ChartName] = Show.show[ChartName](_.asString)
+  implicit val showChart: Show[ChartVersion] = Show.show[ChartVersion](_.asString)
   implicit val showValues: Show[Values] = Show.show[Values](_.asString)
 
   implicit def toGoString[A: Show](a: A): GoString.ByValue = {
