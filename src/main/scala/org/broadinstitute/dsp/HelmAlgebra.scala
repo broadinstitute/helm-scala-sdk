@@ -9,7 +9,8 @@ import scala.util.control.NoStackTrace
 trait HelmAlgebra[F[_]] {
   def installChart(
     release: Release,
-    chart: Chart,
+    chartName: ChartName,
+    chartVersion: ChartVersion,
     values: Values
   ): Kleisli[F, AuthContext, Unit]
 
@@ -31,10 +32,11 @@ final case class AuthContext(
   caCertFile: CaCertFile
 )
 
-final case class Chart(name: String, version: String)
-
 final case class Namespace(asString: String) extends AnyVal
 final case class Release(asString: String) extends AnyVal
+
+final case class ChartName(asString: String) extends AnyVal
+final case class ChartVersion(asString: String) extends AnyVal
 
 // If running on GKE, this can be a Google access token as long as it
 // includes GKE scopes.

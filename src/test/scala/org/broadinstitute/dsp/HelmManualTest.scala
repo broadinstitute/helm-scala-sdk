@@ -35,7 +35,7 @@ final class HelmManualTest(namespace: String, token: String, apiServer: String, 
 
   def callInstallChart(release: String, chartName: String, chartVersion: String, values: String): Unit =
     helmClient
-      .installChart(Release(release), Chart(chartName, chartVersion), Values(values))
+      .installChart(Release(release), ChartName(chartName), ChartVersion(chartVersion), Values(values))
       .run(authContext)
       .unsafeRunSync()
 

@@ -14,7 +14,7 @@ class HelmInterpreter[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Se
 
   val helmClient = Native.load("helm", classOf[HelmJnaClient])
 
-  override def installChart(release: Release, chart: Chart, values: Values): Kleisli[F, AuthContext, Unit] =
+  override def installChart(release: Release, chartName: ChartName, chartVersion: ChartVersion, values: Values): Kleisli[F, AuthContext, Unit] =
     for {
       ctx <- Kleisli.ask[F, AuthContext]
       r <- Kleisli.liftF(
@@ -26,8 +26,8 @@ class HelmInterpreter[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Se
               ctx.kubeApiServer,
               ctx.caCertFile,
               release,
-              chart.name,
-              chart.version,
+              chartName,
+              chartVersion,
               values
             )
           )
