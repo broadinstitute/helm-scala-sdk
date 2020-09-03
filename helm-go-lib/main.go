@@ -32,7 +32,7 @@ func main() {
 	lenProgArgs := len(progArgs)
 
 	if (lenProgArgs != 7) && (lenProgArgs != 8) {
-		fmt.Println("Expected args: <namespace> <kube token> <api server> <ca file> <release name> <chart name> <values>",
+		fmt.Println("Expected args: <namespace> <kube token> <api server> <ca file> <release name> <chart name> <chart version> <values>",
 			"\n\nFound:\n", strings.Join(progArgs, "\n\n\t"))
 		return
 	}
