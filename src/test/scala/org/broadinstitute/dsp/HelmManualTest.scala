@@ -1,36 +1,48 @@
 package org.broadinstitute.dsp
 
 import java.nio.file.Path
+import java.nio.file.Paths
 
 import cats.effect.IO
 
 /**
  * How to run the test:
+ *
+ *
+ * run the `helm repo` coommands in the Usage section of the Readme
+ * export CLUSTER=<cluster-name>
+ * export PROJECT=<google-project>
+ * gcloud auth application-default login
+ * kubectl container clusters create $CLUSTER --project $PROJECT --region us-central1-a
+ * gcloud container clusters get-credentials --project $PROJECT --zone us-central1 $CLUSTER
+ * APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"gke_${PROJECT}_us-central1_${CLUSTER}\")].cluster.server}")
+ * TOKEN=$(kubectl get secrets -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='default')].data.token}"|base64 --decode)
+ * # If you don't have .jq installed, brew install jq`
+ * gcloud container clusters describe test-cluster --zone us-central1 --format=json | jq .masterAuth.clusterCaCertificate | tr -d '"' | base64 --decode > temp.cert
+ * kubectl create ns test-namespace
+ * kubectl create rolebinding rb-default-edit --clusterrole=edit --serviceaccount=test-namespace:default --namespace=test-namespace
+ *
  * sbt -Djna.library.path=/Users/qi/workspace/helm-scala-sdk/helm-go-lib test:console
  *
  * Once inside sbt shell:
- *    val namespace = ...; val token = ...; val apiServer = ...; val caCertFile = ...;
+ *    val namespace = test-namespace; val token = ...; val apiServer = ...; val caCertFile = ...;
  *    val test = new org.broadinstitute.dsp.HelmManualTest(namespace, token, apiServer, caCertFile)
+ *    val release = "gxy-rls"; val chartName = "galaxy/galaxykubeman"; val chartVersion = "0.7.2"; val values = ""
  *    test.callInstallChart(release, chartName, chartVersion, values)
  *
- * KubeApiServer and KubeToken can be retrieved via kubectl as described below:
- * https://kubernetes.io/docs/tasks/administer-cluster/access-cluster-api/#without-kubectl-proxy
  *
  * The ServiceAccount associated with the token needs to have a role sufficient for the release to perform
  * the required operations on the cluster. For example, to grant 'edit' role across the cluster:
- *    kubectl create rolebinding rb-default-edit \
- *      --clusterrole=edit \
- *      --serviceaccount=<your-namespace>:<your-serviceaccount> \
- *      --namespace=<your-namespace>
+ *
  */
-final class HelmManualTest(namespace: String, token: String, apiServer: String, caCertFile: Path)
+final class HelmManualTest(namespace: String, token: String, apiServer: String, caCertFile: String)
     extends HelmScalaSdkTestSuite {
   val helmClient = new HelmInterpreter[IO](blocker, semaphore)
   val authContext = AuthContext(
     Namespace(namespace), // "" is interpreted as all namespaces
     KubeToken(token),
     KubeApiServer(apiServer),
-    CaCertFile(caCertFile)
+    CaCertFile(Paths.get(caCertFile))
   )
 
   def callInstallChart(release: String, chartName: String, chartVersion: String, values: String): Unit =
