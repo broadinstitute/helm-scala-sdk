@@ -78,7 +78,7 @@ class HelmInterpreter[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Se
 
   private def translateResult(cmd: String, result: String): F[Unit] = result match {
     case "ok" => logger.info(s"The command '${cmd}' succeeded")
-    case "cannot re-use a name that is still in use" => logger.info(s"The command ${cmd} encounter a conflict. This is likely a resubmission of the same command. This will not raise an exception to ensure idempotency")
+    case s if s.contains("cannot re-use a name that is still in use") => logger.info(s"The command ${cmd} encountered a conflict. This is likely a resubmission of the same command. This will not raise an exception to ensure idempotency")
     case s    => logger.info(s"The command '${cmd}' failed with result $result") >> F.raiseError(HelmException(s))
   }
 
