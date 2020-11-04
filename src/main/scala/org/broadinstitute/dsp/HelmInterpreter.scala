@@ -2,6 +2,7 @@ package org.broadinstitute.dsp
 
 import cats.data.Kleisli
 import cats.effect.concurrent.Semaphore
+import cats.implicits._
 import cats.effect.{Async, Blocker, ContextShift}
 import com.sun.jna.Native
 import io.chrisdavenport.log4cats.Logger
@@ -77,7 +78,8 @@ class HelmInterpreter[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Se
 
   private def translateResult(cmd: String, result: String): F[Unit] = result match {
     case "ok" => logger.info(s"The command '${cmd}' succeeded")
-    case s    => F.raiseError(HelmException(s))
+    case s if s.contains("cannot re-use a name that is still in use") => logger.info(s"The command ${cmd} encountered a conflict. This is likely a resubmission of the same command. This will not raise an exception to ensure idempotency")
+    case s    => logger.info(s"The command '${cmd}' failed with result $result") >> F.raiseError(HelmException(s))
   }
 
   private def blockingF[A](fa: F[A]): F[A] = concurrencyBound.withPermit(blocker.blockOn(fa))
