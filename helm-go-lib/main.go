@@ -5,10 +5,11 @@ import "C"
 import (
 	"flag"
 	"fmt"
-	"helm.sh/helm/v3/pkg/strvals"
 	"log"
 	"os"
 	"strings"
+
+	"helm.sh/helm/v3/pkg/strvals"
 
 	"github.com/golang/glog"
 	"helm.sh/helm/v3/pkg/action"
@@ -89,7 +90,7 @@ func listHelm(namespace string, kubeToken string, apiServer string, caFile strin
 // TODO: Do we need to make 'overrideValues' optional?
 // TODO: If so, emulate it (perhaps via variadic functions) since Golang doesn't support optional parameters :(
 // `HELM_DRIVER` env variable is expected to have been set to the right value (which is likely to be "secret")
-func installChart(namespace string, kubeToken string, apiServer string, caFile string, releaseName string, chartName string, chartVersion string, overrideValues string) *C.char {
+func installChart(namespace string, kubeToken string, apiServer string, caFile string, releaseName string, chartName string, chartVersion string, overrideValues string, createNamespace bool) *C.char {
 	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
 	if err != nil {
 		log.Printf("%+v\n", err)
@@ -102,7 +103,7 @@ func installChart(namespace string, kubeToken string, apiServer string, caFile s
 	client.Version = chartVersion
 	client.Namespace = namespace
 	client.ReleaseName = releaseName
-	//client.DryRun = true
+	client.CreateNamespace = createNamespace
 
 	settings := cli.New()
 	settings.KubeToken = kubeToken

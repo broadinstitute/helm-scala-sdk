@@ -11,7 +11,8 @@ trait HelmAlgebra[F[_]] {
     release: Release,
     chartName: ChartName,
     chartVersion: ChartVersion,
-    values: Values
+    values: Values,
+    createNamespace: Boolean = false
   ): Kleisli[F, AuthContext, Unit]
 
   def listHelm(): Kleisli[F, AuthContext, Unit]
