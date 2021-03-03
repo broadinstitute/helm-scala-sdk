@@ -59,6 +59,7 @@ func main() {
 		chartName,
 		chartVersion,
 		overrideValues,
+		true,
 	)
 
 	glog.Flush()
