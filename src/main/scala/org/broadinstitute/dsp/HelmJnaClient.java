@@ -42,7 +42,8 @@ public interface HelmJnaClient extends Library {
              GoString.ByValue release,
              GoString.ByValue chartName,
              GoString.ByValue chartVersion,
-             GoString.ByValue values
+             GoString.ByValue values,
+             byte createNamespace
            );
 
   public String uninstallRelease(
