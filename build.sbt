@@ -1,15 +1,10 @@
-val Http4sVersion = "0.21.2"
-val CirceVersion = "0.13.0"
-val Specs2Version = "4.8.3"
-val LogbackVersion = "1.2.3"
-
 lazy val root = (project in file("."))
   .settings(
     organization := "org.broadinstitute.dsp",
     name := "helm-scala-sdk",
-    version := "0.0.1-RC5",
-    scalaVersion := "2.13.4",
-    crossScalaVersions := List("2.12.10", "2.13.4"),
+    version := "0.0.1",
+    scalaVersion := "2.13.5",
+    crossScalaVersions := List("2.12.10", "2.13.5"),
     libraryDependencies ++= Seq(
       "net.java.dev.jna" % "jna" % "5.5.0",
       "co.fs2" %% "fs2-core" % "2.3.0",
