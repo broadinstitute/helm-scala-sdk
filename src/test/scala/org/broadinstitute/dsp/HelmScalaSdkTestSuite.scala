@@ -2,8 +2,8 @@ package org.broadinstitute.dsp
 
 import cats.effect.concurrent.Semaphore
 import cats.effect.{Blocker, ContextShift, IO, Timer}
-import io.chrisdavenport.log4cats.StructuredLogger
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.StructuredLogger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.ExecutionContext.global

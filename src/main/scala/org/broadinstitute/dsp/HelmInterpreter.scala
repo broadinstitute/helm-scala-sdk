@@ -5,7 +5,7 @@ import cats.effect.concurrent.Semaphore
 import cats.implicits._
 import cats.effect.{Async, Blocker, ContextShift}
 import com.sun.jna.Native
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 import org.broadinstitute.dsp.implicits._
 import scala.language.implicitConversions
 
