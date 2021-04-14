@@ -192,7 +192,9 @@ func buildActionConfig(namespace string, kubeToken string, apiServer string, caF
 	return actionConfig, nil
 }
 
-// Override ToRESTConfig to set QPS and Burst
+// Override ConfigFlags struct (which implments the RESTClientGetter interface)
+// to be able to hook into ToRESTConfig() to set QPS and Burst parameters on the k8s rest client.
+
 type CustomConfigFlags struct {
     *genericclioptions.ConfigFlags
 }
