@@ -203,9 +203,9 @@ func (f *CustomConfigFlags) ToRESTConfig() (*rest.Config, error) {
 		return nil, err
 	}
 
-	log.Println("\n\nSETTING QPS AND BURST")
 	c.Burst = 100
 	c.QPS = 50
+	log.Printf("Helm client: setting QPS to %d and Burst to %d", c.Burst, c.QPS)
 
 	return c, nil
 }
