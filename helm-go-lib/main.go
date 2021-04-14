@@ -198,7 +198,7 @@ type CustomConfigFlags struct {
 }
 
 func (f *CustomConfigFlags) ToRESTConfig() (*rest.Config, error) {
-    c, err := f.ToRESTConfig()
+	c, err := f.ConfigFlags.ToRESTConfig()
 	if err != nil {
 		return nil, err
 	}
