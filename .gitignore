@@ -7,3 +7,4 @@ target
 helm-go-lib/libhelm.dylib
 helm-go-lib/libhelm.h
 out/
+.DS_Store

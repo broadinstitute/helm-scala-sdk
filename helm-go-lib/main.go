@@ -18,6 +18,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/rest"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
@@ -181,10 +182,30 @@ func buildActionConfig(namespace string, kubeToken string, apiServer string, caF
 	kubeConfig.CAFile = &caFile
 	kubeConfig.Namespace = &namespace
 
+	customConfig := &CustomConfigFlags{kubeConfig}
+
 	actionConfig = new(action.Configuration)
-	if err := actionConfig.Init(kubeConfig, namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+	if err := actionConfig.Init(customConfig, namespace, os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
 		return nil, err
 	}
 
 	return actionConfig, nil
+}
+
+// Override ToRESTConfig to set QPS and Burst
+type CustomConfigFlags struct {
+    *genericclioptions.ConfigFlags
+}
+
+func (f *CustomConfigFlags) ToRESTConfig() (*rest.Config, error) {
+    c, err := f.ToRESTConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Println("\n\nSETTING QPS AND BURST")
+	c.Burst = 100
+	c.QPS = 50
+
+	return c, nil
 }
