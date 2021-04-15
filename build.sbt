@@ -2,7 +2,7 @@ lazy val root = (project in file("."))
   .settings(
     organization := "org.broadinstitute.dsp",
     name := "helm-scala-sdk",
-    version := "0.0.2",
+    version := "0.0.3",
     scalaVersion := "2.13.5",
     crossScalaVersions := List("2.12.10", "2.13.5"),
     libraryDependencies ++= Seq(
