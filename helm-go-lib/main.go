@@ -206,9 +206,9 @@ func (f *CustomConfigFlags) ToRESTConfig() (*rest.Config, error) {
 	}
 
 	// default is 10/5
-	c.Burst = 1000
-	c.QPS = 100
-	log.Printf("Helm client: setting QPS to %f and Burst to %d\n", c.QPS, c.Burst)
+	c.Burst = 200
+	c.QPS = 50
+	//log.Printf("Helm client: setting QPS to %f and Burst to %d\n", c.QPS, c.Burst)
 
 	return c, nil
 }
