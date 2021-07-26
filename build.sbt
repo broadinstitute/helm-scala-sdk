@@ -2,13 +2,13 @@ lazy val root = (project in file("."))
   .settings(
     organization := "org.broadinstitute.dsp",
     name := "helm-scala-sdk",
-    version := "0.0.3",
-    scalaVersion := "2.13.5",
-    crossScalaVersions := List("2.12.10", "2.13.5"),
+    version := "0.0.4",
+    scalaVersion := "2.13.6",
+    crossScalaVersions := List("2.13.6"),
     libraryDependencies ++= Seq(
       "net.java.dev.jna" % "jna" % "5.5.0",
-      "co.fs2" %% "fs2-core" % "2.5.3",
-      "org.typelevel" %% "log4cats-slf4j"   % "1.2.0",
+      "co.fs2" %% "fs2-core" % "3.0.6",
+      "org.typelevel" %% "log4cats-slf4j"   % "2.1.1",
       "org.scalatest" %% "scalatest" % "3.3.0-SNAP2" % Test
     ),
     addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.10.3"),

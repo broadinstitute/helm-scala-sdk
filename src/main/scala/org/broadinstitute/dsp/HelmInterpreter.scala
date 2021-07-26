@@ -1,25 +1,29 @@
 package org.broadinstitute.dsp
 
 import cats.data.Kleisli
-import cats.effect.concurrent.Semaphore
+import cats.effect.std.Semaphore
+import cats.effect.{Async}
 import cats.implicits._
-import cats.effect.{Async, Blocker, ContextShift}
 import com.sun.jna.Native
-import org.typelevel.log4cats.Logger
 import org.broadinstitute.dsp.implicits._
+import org.typelevel.log4cats.Logger
+
 import scala.language.implicitConversions
 
-class HelmInterpreter[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Semaphore[F])(implicit logger: Logger[F],
-                                                                                            F: Async[F])
+class HelmInterpreter[F[_]](concurrencyBound: Semaphore[F])(implicit logger: Logger[F], F: Async[F])
     extends HelmAlgebra[F] {
 
   val helmClient = Native.load("helm", classOf[HelmJnaClient])
 
-  override def installChart(release: Release, chartName: ChartName, chartVersion: ChartVersion, values: Values, createNamespace: Boolean = false): Kleisli[F, AuthContext, Unit] =
+  override def installChart(release: Release,
+                            chartName: ChartName,
+                            chartVersion: ChartVersion,
+                            values: Values,
+                            createNamespace: Boolean = false): Kleisli[F, AuthContext, Unit] =
     for {
       ctx <- Kleisli.ask[F, AuthContext]
       r <- Kleisli.liftF(
-        blockingF(
+        boundF(
           F.delay(
             helmClient.installChart(
               ctx.namespace,
@@ -42,8 +46,8 @@ class HelmInterpreter[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Se
     for {
       ctx <- Kleisli.ask[F, AuthContext]
       _ <- Kleisli.liftF(
-        blockingF(
-          F.delay(
+        boundF(
+          F.blocking(
             helmClient.listHelm(
               ctx.namespace,
               ctx.kubeToken,
@@ -61,8 +65,8 @@ class HelmInterpreter[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Se
     for {
       ctx <- Kleisli.ask[F, AuthContext]
       _ <- Kleisli.liftF(
-        blockingF(
-          F.delay(
+        boundF(
+          F.blocking(
             helmClient.uninstallRelease(
               ctx.namespace,
               ctx.kubeToken,
@@ -79,9 +83,12 @@ class HelmInterpreter[F[_]: ContextShift](blocker: Blocker, concurrencyBound: Se
 
   private def translateResult(cmd: String, result: String): F[Unit] = result match {
     case "ok" => logger.info(s"The command '${cmd}' succeeded")
-    case s if s.contains("cannot re-use a name that is still in use") => logger.info(s"The command ${cmd} encountered a conflict. This is likely a resubmission of the same command. This will not raise an exception to ensure idempotency. Helm command output: ${s}")
-    case s    => logger.info(s"The command '${cmd}' failed with result $result") >> F.raiseError(HelmException(s))
+    case s if s.contains("cannot re-use a name that is still in use") =>
+      logger.info(
+        s"The command ${cmd} encountered a conflict. This is likely a resubmission of the same command. This will not raise an exception to ensure idempotency. Helm command output: ${s}"
+      )
+    case s => logger.info(s"The command '${cmd}' failed with result $result") >> F.raiseError(HelmException(s))
   }
 
-  private def blockingF[A](fa: F[A]): F[A] = concurrencyBound.withPermit(blocker.blockOn(fa))
+  private def boundF[A](fa: F[A]): F[A] = concurrencyBound.permit.use(_ => fa)
 }

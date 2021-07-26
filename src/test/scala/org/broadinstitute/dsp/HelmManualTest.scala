@@ -2,8 +2,8 @@ package org.broadinstitute.dsp
 
 import java.nio.file.Path
 import java.nio.file.Paths
-
 import cats.effect.IO
+import cats.effect.unsafe.implicits.global
 
 /**
  * How to run the test:
@@ -37,7 +37,7 @@ import cats.effect.IO
  */
 final class HelmManualTest(namespace: String, token: String, apiServer: String, caCertFile: String)
     extends HelmScalaSdkTestSuite {
-  val helmClient = new HelmInterpreter[IO](blocker, semaphore)
+  val helmClient = new HelmInterpreter[IO](semaphore)
   val authContext = AuthContext(
     Namespace(namespace), // "" is interpreted as all namespaces
     KubeToken(token),
