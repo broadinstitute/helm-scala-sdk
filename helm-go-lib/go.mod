@@ -9,7 +9,7 @@ replace (
 
 require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-	helm.sh/helm/v3 v3.5.3
-	k8s.io/cli-runtime v0.20.2
-	k8s.io/client-go v0.20.2
+	helm.sh/helm/v3 v3.6.1
+	k8s.io/cli-runtime v0.21.0
+	k8s.io/client-go v0.21.0
 )
