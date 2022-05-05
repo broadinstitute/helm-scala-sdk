@@ -1,3 +1,7 @@
+# This container is used in the firecloud-develop docker-rsync-local-leonardo
+# The use case is to build a platform-independent go executable of this library for mounting into a docker container
+# This is useful, as leonardo depends on it, but a mac-built version is not compatible 
+
 FROM golang:1.14.6-stretch AS helm-go-lib-builder
 
 # Build helm lib
