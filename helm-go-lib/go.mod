@@ -8,8 +8,8 @@ replace (
 )
 
 require (
-	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-	helm.sh/helm/v3 v3.5.3
-	k8s.io/cli-runtime v0.20.2
-	k8s.io/client-go v0.20.2
+	github.com/golang/glog v1.0.0
+	helm.sh/helm/v3 v3.9.4
+	k8s.io/cli-runtime v0.24.2
+	k8s.io/client-go v0.24.2
 )
