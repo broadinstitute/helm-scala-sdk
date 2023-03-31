@@ -18,15 +18,16 @@ import (
 	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/rest"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/rest"
 )
 
 /*
-	Example command line to run from within the directory this file is in:
-		go run main.go \
-			-logtostderr=true -stderrthreshold=INFO \
-			my-namespace my-kube-token-string https://12.34.567.890 ./ca_file bitnami/nginx 6.0.5 key1=v1,key2.key3=v2
+Example command line to run from within the directory this file is in:
+
+	go run main.go \
+		-logtostderr=true -stderrthreshold=INFO \
+		my-namespace my-kube-token-string https://12.34.567.890 ./ca_file bitnami/nginx 6.0.5 key1=v1,key2.key3=v2
 */
 func main() {
 	flag.Parse()
@@ -88,10 +89,11 @@ func listHelm(namespace string, kubeToken string, apiServer string, caFile strin
 	return C.CString("ok")
 }
 
-//export installChart
 // TODO: Do we need to make 'overrideValues' optional?
 // TODO: If so, emulate it (perhaps via variadic functions) since Golang doesn't support optional parameters :(
 // `HELM_DRIVER` env variable is expected to have been set to the right value (which is likely to be "secret")
+//
+//export installChart
 func installChart(namespace string, kubeToken string, apiServer string, caFile string, releaseName string, chartName string, chartVersion string, overrideValues string, createNamespace bool) *C.char {
 	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
 	if err != nil {
@@ -174,6 +176,63 @@ func uninstallRelease(namespace string, kubeToken string, apiServer string, caFi
 	return C.CString("ok")
 }
 
+//export upgradeChart
+func upgradeChart(namespace string, kubeToken string, apiServer string, caFile string, releaseName string, chartName string, overrideValues string) *C.char {
+	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
+	if err != nil {
+		log.Printf("%+v\n", err)
+		return C.CString(err.Error())
+	}
+
+	client := action.NewUpgrade(actionConfig)
+	client.Namespace = namespace
+	client.CleanupOnFail = true
+
+	settings := cli.New()
+	settings.KubeToken = kubeToken
+	settings.KubeAPIServer = apiServer
+
+	cp, err := client.ChartPathOptions.LocateChart(chartName, settings)
+	if err != nil {
+		log.Printf("%+v", err)
+		return C.CString(err.Error())
+	}
+
+	// Check chart dependencies to make sure all are present in /charts
+	chartRequested, err := loader.Load(cp)
+	if err != nil {
+		log.Printf("%+v", err)
+		return C.CString(err.Error())
+	}
+
+	// Adapted from the example below to override chart values as in CLI --set
+	// https://github.com/PrasadG193/helm-clientgo-example
+	providers := getter.All(settings)
+	valueOpts := &values.Options{}
+
+	// Combine overrides from different sources, if any
+	values, err := valueOpts.MergeValues(providers)
+	if err != nil {
+		log.Printf("%+v", err)
+		return C.CString(err.Error())
+	}
+
+	// Add --set overrides in the form of comma-separated key=value pairs
+	if err := strvals.ParseInto(overrideValues, values); err != nil {
+		log.Printf("%+v", "Failed parsing --set values", err)
+		return C.CString(err.Error())
+	}
+
+	_, err = client.Run(namespace, chartRequested, values)
+	if err != nil {
+		log.Printf("%+v\n", err)
+		return C.CString(err.Error())
+	}
+
+	log.Printf("Finished upgrading to release %s", releaseName)
+	return C.CString("ok")
+}
+
 func buildActionConfig(namespace string, kubeToken string, apiServer string, caFile string) (actionConfig *action.Configuration, err error) {
 	var kubeConfig *genericclioptions.ConfigFlags
 	kubeConfig = genericclioptions.NewConfigFlags(false)
@@ -196,7 +255,7 @@ func buildActionConfig(namespace string, kubeToken string, apiServer string, caF
 // to be able to hook into ToRESTConfig() to set QPS and Burst parameters on the k8s rest client.
 
 type CustomConfigFlags struct {
-    *genericclioptions.ConfigFlags
+	*genericclioptions.ConfigFlags
 }
 
 func (f *CustomConfigFlags) ToRESTConfig() (*rest.Config, error) {
