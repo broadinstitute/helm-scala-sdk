@@ -9,7 +9,7 @@ import cats.effect.unsafe.implicits.global
  * How to run the test:
  *
  *
- * run the `helm repo` coommands in the Usage section of the Readme
+ * run the `helm repo` commands in the Usage section of the Readme
  * export CLUSTER=<cluster-name>
  * export PROJECT=<google-project>
  * gcloud auth application-default login
@@ -29,6 +29,8 @@ import cats.effect.unsafe.implicits.global
  *    val test = new org.broadinstitute.dsp.HelmManualTest(namespace, token, apiServer, caCertFile)
  *    val release = "gxy-rls"; val chartName = "galaxy/galaxykubeman"; val chartVersion = "0.7.2"; val values = ""
  *    test.callInstallChart(release, chartName, chartVersion, values)
+ *    val newChartVersion = "0.7.3"; val newValues = ""
+ *    test.callUpgradeChart(release, chartName, NewChartVersion, newValues)
  *
  *
  * The ServiceAccount associated with the token needs to have a role sufficient for the release to perform

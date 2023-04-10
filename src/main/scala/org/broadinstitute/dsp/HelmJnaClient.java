@@ -69,6 +69,7 @@ public interface HelmJnaClient extends Library {
           GoString.ByValue caCertFile,
           GoString.ByValue release,
           GoString.ByValue chartName,
+          GoString.ByValue chartVersion,
           GoString.ByValue values
   );
 

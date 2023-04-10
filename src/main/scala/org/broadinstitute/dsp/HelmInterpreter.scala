@@ -81,7 +81,10 @@ class HelmInterpreter[F[_]](concurrencyBound: Semaphore[F])(implicit logger: Log
       _ <- Kleisli.liftF(translateResult("helm uninstall", "ok"))
     } yield ()
 
-  override def upgradeChart(release: Release, chartName: ChartName, values: Values): Kleisli[F, AuthContext, Unit] =
+  override def upgradeChart(release: Release,
+                            chartName: ChartName,
+                            chartVersion: ChartVersion,
+                            values: Values): Kleisli[F, AuthContext, Unit] =
     for {
       ctx <- Kleisli.ask[F, AuthContext]
       r <- Kleisli.liftF(
@@ -94,6 +97,7 @@ class HelmInterpreter[F[_]](concurrencyBound: Semaphore[F])(implicit logger: Log
               ctx.caCertFile,
               release,
               chartName,
+              chartVersion,
               values
             )
           )

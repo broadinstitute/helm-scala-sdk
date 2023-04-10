@@ -177,7 +177,7 @@ func uninstallRelease(namespace string, kubeToken string, apiServer string, caFi
 }
 
 //export upgradeChart
-func upgradeChart(namespace string, kubeToken string, apiServer string, caFile string, releaseName string, chartName string, overrideValues string) *C.char {
+func upgradeChart(namespace string, kubeToken string, apiServer string, caFile string, releaseName string, chartName string, chartVersion string, overrideValues string) *C.char {
 	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
 	if err != nil {
 		log.Printf("%+v\n", err)
@@ -186,7 +186,11 @@ func upgradeChart(namespace string, kubeToken string, apiServer string, caFile s
 
 	client := action.NewUpgrade(actionConfig)
 	client.Namespace = namespace
+	client.Version = chartVersion
+	// allow deletion of new resources created in this upgrade when upgrade fails
 	client.CleanupOnFail = true
+	// when upgrading, reset the values to the ones built into the chart
+	client.ResetValues = true
 
 	settings := cli.New()
 	settings.KubeToken = kubeToken

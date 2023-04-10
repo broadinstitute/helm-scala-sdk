@@ -24,6 +24,7 @@ trait HelmAlgebra[F[_]] {
   def upgradeChart(
     release: Release,
     chartName: ChartName,
+    chartVersion: ChartVersion,
     values: Values
   ): Kleisli[F, AuthContext, Unit]
 }
