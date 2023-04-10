@@ -53,6 +53,12 @@ final class HelmManualTest(namespace: String, token: String, apiServer: String, 
       .run(authContext)
       .unsafeRunSync()
 
+  def callUpgradeChart(release: String, chartName: String, chartVersion: String, values: String): Unit =
+    helmClient
+      .upgradeChart(Release(release), ChartName(chartName), ChartVersion(chartVersion), Values(values))
+      .run(authContext)
+      .unsafeRunSync()
+
   def listHelm(): Unit =
     helmClient
       .listHelm()
