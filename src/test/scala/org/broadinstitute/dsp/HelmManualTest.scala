@@ -6,31 +6,57 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 
 /**
- * How to run the test:
- *
  *
  * run the `helm repo` commands in the Usage section of the Readme
- * export CLUSTER=<cluster-name>
- * export PROJECT=<google-project>
+ *
+ * GOOGLE
+ * Create a cromwell app on your BEE from a GCP workspace and export the google project id, kubernetes cluster name and the kubernetes cluster region (available in the KUBERNETES_CLUSTERS table)
+ * export CLUSTER=<cluster-name> (e.g. kb771641-52ff-418f-acf4-8831f70cbc2e)
+ * export PROJECT=<google-project> (e.g. terra-quality-ecf0104e)
+ * export REGION=<cluster-region> (e.g. us-central1-a)
  * gcloud auth application-default login
- * kubectl container clusters create $CLUSTER --project $PROJECT --region us-central1-a
- * gcloud container clusters get-credentials --project $PROJECT --zone us-central1 $CLUSTER
- * APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"gke_${PROJECT}_us-central1_${CLUSTER}\")].cluster.server}")
+ * gcloud container clusters get-credentials --project $PROJECT --zone $REGION $CLUSTER
+ * APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"gke_${PROJECT}_${REGION}_${CLUSTER}\")].cluster.server}")
+ * If you don't have .jq installed, brew install jq`, make sure you are on the VPN as well
  * TOKEN=$(kubectl get secrets -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='default')].data.token}"|base64 --decode)
- * # If you don't have .jq installed, brew install jq`
- * gcloud container clusters describe test-cluster --zone us-central1 --format=json | jq .masterAuth.clusterCaCertificate | tr -d '"' | base64 --decode > temp.cert
+ * gcloud container clusters describe $CLUSTER --project $PROJECT --zone $REGION --format=json | jq .masterAuth.clusterCaCertificate | tr -d '"' | base64 --decode > temp.cert
  * kubectl create ns test-namespace
  * kubectl create rolebinding rb-default-edit --clusterrole=edit --serviceaccount=test-namespace:default --namespace=test-namespace
  *
- * sbt -Djna.library.path=/Users/qi/workspace/helm-scala-sdk/helm-go-lib test:console
+ * * sbt -Djna.library.path=<PATH TO YOUR HELM SCALA SDK REPO ROOT>/helm-go-lib test:console
  *
  * Once inside sbt shell:
- *    val namespace = test-namespace; val token = ...; val apiServer = ...; val caCertFile = ...;
+ *    val namespace = "test-namespace"; val token = "<PASS TOKEN VALUE HERE>"; val apiServer = "<PASS APISERVER VALUE HERE>"; val caCertFile = "temp.cert";
  *    val test = new org.broadinstitute.dsp.HelmManualTest(namespace, token, apiServer, caCertFile)
- *    val release = "gxy-rls"; val chartName = "galaxy/galaxykubeman"; val chartVersion = "0.7.2"; val values = ""
+ *    val release = "cromwell-rls"; val chartName = "cromwell-helm/cromwell"; val chartVersion = "0.2.217"; val values = ""
  *    test.callInstallChart(release, chartName, chartVersion, values)
- *    val newChartVersion = "0.7.3"; val newValues = ""
+ *    val newChartVersion = "0.2.218"; val newValues = ""
  *    test.callUpgradeChart(release, chartName, NewChartVersion, newValues)
+ *
+ *
+ * AZURE
+ * Create a cromwell app on your BEE from an Azure workspace and export the Managed resource group and landing zone (available in the KUBERNETES_CLUSTERS table)
+ * export LANDING_ZONE=<cluster-name> (e.g. lz7d0e4d5d10a387b4eac4495)
+ * export MRG=<mrg-name> (e.g. mrg-terra-dev-previ-20230214105302)
+ * Login with your test.firecloud account so you have permission to list the clusters
+ * az login
+ * az aks get-credentials --resource-group $MRG --name $LANDING_ZONE
+ * APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"${LANDING_ZONE}\")].cluster.server}")
+ * TOKEN=$(kubectl config view -o jsonpath="{.users[?(@.name==\"clusterUser_${MRG}_${LANDING_ZONE}\")].user.token}")
+ * kubectl config view -o jsonpath="{.clusters[?(@.name==\"${LANDING_ZONE}\")].cluster.certificate-authority-data}" --raw  | base64 --decode > temp.cert
+ * kubectl create ns test-namespace
+ * kubectl create rolebinding rb-default-edit --clusterrole=edit --serviceaccount=test-namespace:default --namespace=test-namespace
+ *
+ * * sbt -Djna.library.path=<PATH TO YOUR HELM SCALA SDK REPO ROOT>/helm-go-lib test:console
+ *
+ * Once inside sbt shell:
+ *    val namespace = "test-namespace"; val token = "<PASS TOKEN VALUE HERE>"; val apiServer = "<PASS APISERVER VALUE HERE>"; val caCertFile = "temp.cert";
+ *    val test = new org.broadinstitute.dsp.HelmManualTest(namespace, token, apiServer, caCertFile)
+ *    val release = "coa-rls"; val chartName = "cromwell-helm/cromwell-on-azure"; val chartVersion = "0.2.213"; val values = ""
+ *    test.callInstallChart(release, chartName, chartVersion, values)
+ *    val newChartVersion = " 0.2.216"; val newValues = ""
+ *    test.callUpgradeChart(release, chartName, NewChartVersion, newValues)
+ *
  *
  *
  * The ServiceAccount associated with the token needs to have a role sufficient for the release to perform

@@ -18,10 +18,11 @@ libraryDependencies += "org.broadinstitute.dsp" % "helm-scala-sdk_2.13" % "0.0.1
 ```
 
 - Set JVM parameter `-Djna.library.path=<path-to-generated-shared-go-library>`
-- Note that since this is a helm sdk, you must update the local helm repo with the most recent charts for your app. For galaxy, the commands are as follows
+- Note that since this is a helm sdk, you must update the local helm repo with the most recent charts for your app. For galaxy and cromwell the commands are as follows
 ```
 helm repo add stable https://kubernetes-charts.storage.googleapis.com/ 
 helm repo add galaxy https://raw.githubusercontent.com/cloudve/helm-charts/anvil/ 
+helm repo add cromwell-helm https://broadinstitute.github.io/cromwhelm/charts/
 helm repo update
 ```
 
