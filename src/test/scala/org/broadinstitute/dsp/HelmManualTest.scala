@@ -14,8 +14,8 @@ import cats.effect.unsafe.implicits.global
  * export CLUSTER=<cluster-name> (e.g. kb771641-52ff-418f-acf4-8831f70cbc2e)
  * export PROJECT=<google-project> (e.g. terra-quality-ecf0104e)
  * export REGION=<cluster-region> (e.g. us-central1-a)
- * gcloud auth application-default login
- * gcloud container clusters get-credentials --project $PROJECT --zone $REGION $CLUSTER
+ * gcloud auth login (your broadinstitute email should work)
+ * gcloud container clusters get-credentials $CLUSTER --project $PROJECT --zone $REGION
  * APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"gke_${PROJECT}_${REGION}_${CLUSTER}\")].cluster.server}")
  * If you don't have .jq installed, brew install jq`, make sure you are on the VPN as well
  * TOKEN=$(kubectl get secrets -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='default')].data.token}"|base64 --decode)
@@ -26,12 +26,12 @@ import cats.effect.unsafe.implicits.global
  * * sbt -Djna.library.path=<PATH TO YOUR HELM SCALA SDK REPO ROOT>/helm-go-lib test:console
  *
  * Once inside sbt shell:
- *    val namespace = "test-namespace"; val token = "<PASS TOKEN VALUE HERE>"; val apiServer = "<PASS APISERVER VALUE HERE>"; val caCertFile = "temp.cert";
+ *    val namespace = "test-namespace"; val token = "<PASS TOKEN VALUE HERE>"; val apiServer = "<PASS APISERVER VALUE HERE>"; val caCertFile = "<PASS PATH TO CERTIFICATE HERE>";
  *    val test = new org.broadinstitute.dsp.HelmManualTest(namespace, token, apiServer, caCertFile)
  *    val release = "cromwell-rls"; val chartName = "cromwell-helm/cromwell"; val chartVersion = "0.2.217"; val values = ""
  *    test.callInstallChart(release, chartName, chartVersion, values)
  *    val newChartVersion = "0.2.218"; val newValues = ""
- *    test.callUpgradeChart(release, chartName, NewChartVersion, newValues)
+ *    test.callUpgradeChart(release, chartName, newChartVersion, newValues)
  *
  *
  * AZURE
@@ -42,7 +42,7 @@ import cats.effect.unsafe.implicits.global
  * az login
  * az aks get-credentials --resource-group $MRG --name $LANDING_ZONE
  * APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"${LANDING_ZONE}\")].cluster.server}")
- * TOKEN=$(kubectl config view -o jsonpath="{.users[?(@.name==\"clusterUser_${MRG}_${LANDING_ZONE}\")].user.token}")
+ * TOKEN=$(kubectl config view -o jsonpath="{.users[?(@.name==\"clusterUser_${MRG}_${LANDING_ZONE}\")].user.token}" --raw )
  * kubectl config view -o jsonpath="{.clusters[?(@.name==\"${LANDING_ZONE}\")].cluster.certificate-authority-data}" --raw  | base64 --decode > temp.cert
  * kubectl create ns test-namespace
  * kubectl create rolebinding rb-default-edit --clusterrole=edit --serviceaccount=test-namespace:default --namespace=test-namespace
@@ -55,7 +55,7 @@ import cats.effect.unsafe.implicits.global
  *    val release = "coa-rls"; val chartName = "cromwell-helm/cromwell-on-azure"; val chartVersion = "0.2.213"; val values = ""
  *    test.callInstallChart(release, chartName, chartVersion, values)
  *    val newChartVersion = " 0.2.216"; val newValues = ""
- *    test.callUpgradeChart(release, chartName, NewChartVersion, newValues)
+ *    test.callUpgradeChart(release, chartName, newChartVersion, newValues)
  *
  *
  *
