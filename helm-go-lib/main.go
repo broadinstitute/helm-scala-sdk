@@ -178,6 +178,7 @@ func uninstallRelease(namespace string, kubeToken string, apiServer string, caFi
 
 //export upgradeChart
 func upgradeChart(namespace string, kubeToken string, apiServer string, caFile string, releaseName string, chartName string, chartVersion string, overrideValues string) *C.char {
+
 	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
 	if err != nil {
 		log.Printf("%+v\n", err)
@@ -204,6 +205,7 @@ func upgradeChart(namespace string, kubeToken string, apiServer string, caFile s
 
 	// Check chart dependencies to make sure all are present in /charts
 	chartRequested, err := loader.Load(cp)
+
 	if err != nil {
 		log.Printf("%+v", err)
 		return C.CString(err.Error())
@@ -227,7 +229,7 @@ func upgradeChart(namespace string, kubeToken string, apiServer string, caFile s
 		return C.CString(err.Error())
 	}
 
-	_, err = client.Run(namespace, chartRequested, values)
+	_, err = client.Run(releaseName, chartRequested, values)
 	if err != nil {
 		log.Printf("%+v\n", err)
 		return C.CString(err.Error())

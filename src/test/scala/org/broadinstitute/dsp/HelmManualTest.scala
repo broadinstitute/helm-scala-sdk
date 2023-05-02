@@ -21,12 +21,14 @@ import cats.effect.unsafe.implicits.global
     a.chart,
     a.release,
     ns.namespaceName,
-    a.creator
+    a.creator,
+    a.workspaceId
     FROM APP a, NODEPOOL np, KUBERNETES_CLUSTER k, NAMESPACE ns
     WHERE k.id = np.clusterId
     AND np.id = a.nodepoolId
     AND a.namespaceId = ns.id
-    AND a.status = 'RUNNING';
+    AND a.status = 'RUNNING'
+    AND a.creator = '<PASS YOUR EMAIL ADDRESS>;
  *
  *
  * GOOGLE
@@ -34,12 +36,19 @@ import cats.effect.unsafe.implicits.global
  * export CLUSTER=<cluster-name> (e.g. kb771641-52ff-418f-acf4-8831f70cbc2e)
  * export PROJECT=<google-project> (e.g. terra-quality-ecf0104e)
  * export LOCATION=<cluster-location> (e.g. us-central1-a)
+ * export NAMESPACE=<ns-name> (e.g. qyq2do-cromwell-ns)
+ * export RELEASE=<rs-name> (e.g. qyq2do-cromwell-rls)
  * gcloud auth login (your broadinstitute email should work)
  * gcloud container clusters get-credentials $CLUSTER --project $PROJECT --zone $LOCATION
  * APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"gke_${PROJECT}_${LOCATION}_${CLUSTER}\")].cluster.server}")
  * If you don't have .jq installed, brew install jq`, make sure you are on the VPN as well
  * TOKEN=$(kubectl get secrets -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='default')].data.token}"|base64 --decode)
  * gcloud container clusters describe $CLUSTER --project $PROJECT --zone $LOCATION --format=json | jq .masterAuth.clusterCaCertificate | tr -d '"' | base64 --decode > temp.cert
+ * You can extract the values of the existing release in your namespace by running the command
+ * helm get values ${RELEASE} -n ${NAMESPACE}
+ * Now this bit is annoying, but copy/paste the yaml output into a text editor (like VSCode), and reformat it into the list of strings
+ * that the scala function expects (see example: https://github.com/DataBiosphere/leonardo/blob/3f57bc933f3d7448fedae164bb8243bdb5e1c09d/http/src/main/scala/org/broadinstitute/dsde/workbench/leonardo/util/AKSInterpreter.scala#L515)
+ *
  * If you want to test the install function then you need to create a new namespace
  * kubectl create ns test-namespace
  * kubectl create rolebinding rb-default-edit --clusterrole=edit --serviceaccount=test-namespace:default --namespace=test-namespace
@@ -48,24 +57,36 @@ import cats.effect.unsafe.implicits.global
  * * sbt -Djna.library.path=<PATH TO YOUR HELM SCALA SDK REPO ROOT>/helm-go-lib test:console
  *
  * Once inside sbt shell:
- *    val namespace = "test-namespace"; val token = "<PASS TOKEN VALUE HERE>"; val apiServer = "<PASS APISERVER VALUE HERE>"; val caCertFile = "<PASS PATH TO CERTIFICATE HERE>";
+ *    val namespace = "<PASS NAMESPACE NAME>"; val token = "<PASS TOKEN VALUE>"; val apiServer = "<PASS APISERVER VALUE>"; val caCertFile = "<PASS PATH TO CERT FILE>";
  *    val test = new org.broadinstitute.dsp.HelmManualTest(namespace, token, apiServer, caCertFile)
- *    val release = "test-cromwell-rls"; val chartName = "cromwell-helm/cromwell"; val chartVersion = "0.2.217"; val values = ""
+ *
+ *    // If you want to test the install
+ *    val release = "<PASS RELEASE NAME>"; val chartName = "cromwell-helm/cromwell"; val chartVersion = "<PASS CHART VERSION YOU WANT TO INSTALL>"; val values = List(<PASS REFORMATTED VALUES>).mkString(",")
+
  *    test.callInstallChart(release, chartName, chartVersion, values)
- *    val newChartVersion = "0.2.218"; val newValues = ""
+ *    // If you want to test the upgrade
+ *    val release = "<PASS RELEASE NAME>"; val chartName = "cromwell-helm/cromwell-on-azure";
+ *    val newChartVersion = "<PASS NEW CHART VERSION>"; val newValues = List(<PASS REFORMATTED VALUES>).mkString(",")
  *    test.callUpgradeChart(release, chartName, newChartVersion, newValues)
  *
  *
  * AZURE
  * Create a cromwell app on your BEE from an Azure workspace and export the Managed resource group
  * export MRG=<mrg-name> (e.g. mrg-terra-dev-previ-20230214105302)
+ * export NAMESPACE=<ns-name> (e.g. ojnm62-coa-ns)
+ * export RELEASE=<rs-name> (e.g. ojnm62-coa-rls)
  * Login with your test.firecloud account so you have permission to list the clusters
  * az login
- * CLUSTER=$(az aks list -g $MRG  --query "[].name" -o tsv)
+ * export CLUSTER=$(az aks list -g $MRG  --query "[].name" -o tsv)
  * az aks get-credentials --resource-group $MRG --name $CLUSTER
  * APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"${CLUSTER}\")].cluster.server}")
  * TOKEN=$(kubectl config view -o jsonpath="{.users[?(@.name==\"clusterUser_${MRG}_${CLUSTER}\")].user.token}" --raw )
  * kubectl config view -o jsonpath="{.clusters[?(@.name==\"${CLUSTER}\")].cluster.certificate-authority-data}" --raw  | base64 --decode > temp.cert
+ * You can extract the values of the existing release in your namespace by running the command
+ * helm get values ${RELEASE} -n ${NAMESPACE}
+ * Now this bit is annoying, but copy/paste the yaml output into a text editor, and reformat it into the list of strings
+ * that the scala function expects (see example: https://github.com/DataBiosphere/leonardo/blob/3f57bc933f3d7448fedae164bb8243bdb5e1c09d/http/src/main/scala/org/broadinstitute/dsde/workbench/leonardo/util/AKSInterpreter.scala#L515)
+ *
  * If you want to test the install function then you need to create a new namespace
  * kubectl create ns test-namespace
  * kubectl create rolebinding rb-default-edit --clusterrole=edit --serviceaccount=test-namespace:default --namespace=test-namespace
@@ -73,11 +94,16 @@ import cats.effect.unsafe.implicits.global
  * * sbt -Djna.library.path=<PATH TO YOUR HELM SCALA SDK REPO ROOT>/helm-go-lib test:console
  *
  * Once inside sbt shell:
- *    val namespace = "test-namespace"; val token = "<PASS TOKEN VALUE HERE>"; val apiServer = "<PASS APISERVER VALUE HERE>"; val caCertFile = "temp.cert";
+ *    val namespace = "<PASS NAMESPACE NAME>"; val token = "<PASS TOKEN VALUE>"; val apiServer = "<PASS APISERVER VALUE>"; val caCertFile = "<PASS PATH TO CERT FILE>";
  *    val test = new org.broadinstitute.dsp.HelmManualTest(namespace, token, apiServer, caCertFile)
- *    val release = "test-coa-rls"; val chartName = "cromwell-helm/cromwell-on-azure"; val chartVersion = "0.2.213"; val values = ""
+ *
+ *    // If you want to test the install
+ *    val release = "<PASS RELEASE NAME>"; val chartName = "cromwell-helm/cromwell-on-azure"; val chartVersion = "0.2.213"; val values = List(<PASS REFORMATTED VALUES>).mkString(",")
+
  *    test.callInstallChart(release, chartName, chartVersion, values)
- *    val newChartVersion = " 0.2.216"; val newValues = ""
+ *    // If you want to test the upgrade
+ *    val release = "<PASS RELEASE NAME>"; val chartName = "cromwell-helm/cromwell-on-azure";
+ *    val newChartVersion = "<PASS NEW CHART VERSION>"; val newValues = List(<PASS REFORMATTED VALUES>).mkString(",")
  *    test.callUpgradeChart(release, chartName, newChartVersion, newValues)
  *
  *
