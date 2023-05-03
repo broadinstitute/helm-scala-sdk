@@ -81,6 +81,31 @@ class HelmInterpreter[F[_]](concurrencyBound: Semaphore[F])(implicit logger: Log
       _ <- Kleisli.liftF(translateResult("helm uninstall", "ok"))
     } yield ()
 
+  override def upgradeChart(release: Release,
+                            chartName: ChartName,
+                            chartVersion: ChartVersion,
+                            values: Values): Kleisli[F, AuthContext, Unit] =
+    for {
+      ctx <- Kleisli.ask[F, AuthContext]
+      r <- Kleisli.liftF(
+        boundF(
+          F.delay(
+            helmClient.upgradeChart(
+              ctx.namespace,
+              ctx.kubeToken,
+              ctx.kubeApiServer,
+              ctx.caCertFile,
+              release,
+              chartName,
+              chartVersion,
+              values
+            )
+          )
+        )
+      )
+      _ <- Kleisli.liftF(translateResult("helm upgradeChart", r))
+    } yield ()
+
   private def translateResult(cmd: String, result: String): F[Unit] = result match {
     case "ok" => logger.info(s"The command '${cmd}' succeeded")
     case s if s.contains("cannot re-use a name that is still in use") =>
