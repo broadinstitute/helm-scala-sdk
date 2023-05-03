@@ -32,6 +32,9 @@ Publish locally
 `sbt publishLocal` (`sbt ++publishLocal` to cross build multiple versions of scala)
 
 Publish to JFrog
+Before running the publishing command, make sure to bump the package version in built.sbt.
+You can then find the artifactory credentials on vault (`secret/dsp/accts/artifactory/dsdejenkins`).
+Export both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD to your environment.
 
 `sbt publish` (`sbt ++publish` to cross build multiple versions of scala)
 
