@@ -312,8 +312,10 @@ func CheckVersion(chart string, localChartDir string) string {
 	}
 
 	// Run the "helm search" command to search for the chart in remote repositories
-	cmd := exec.Command("helm", "search", "repo", chartName)
+	cmd := exec.Command("helm", "search", "repo", chart)
 	output, err := cmd.CombinedOutput()
+	log.Printf("Output of helm search is %v\n", output)
+
 	if err != nil {
 		log.Fatalf("Error running 'helm search': %v", err)
 	}
@@ -322,11 +324,11 @@ func CheckVersion(chart string, localChartDir string) string {
 	latestVersion := extractLatestVersion(string(output))
 
 	if latestVersion == "" {
-		log.Printf("Chart %q not found in any remote repository.\n", chartName)
+		log.Printf("Chart %q not found in any remote repository.\n", chart)
 		return ""
 	}
 
-	log.Printf("Latest version of %s is %s\n", chartName, latestVersion)
+	log.Printf("Latest version of %s is %v\n", chart, latestVersion)
 
 	if latestLocalVersion == "" {
 		replaceLocal(chart, localChartDir, fullLocalChartDir)
