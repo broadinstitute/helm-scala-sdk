@@ -5,6 +5,8 @@ import "C"
 import (
 	"flag"
 	"fmt"
+	"github.com/Masterminds/semver/v3"
+	"helm.sh/helm/v3/pkg/chart"
 	"log"
 	"os"
 	"strings"
@@ -20,6 +22,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
+	"os/exec"
 )
 
 /*
@@ -105,6 +108,9 @@ func installChart(namespace string, kubeToken string, apiServer string, caFile s
 	// TODO: Should we not update all Helm repos by default, and instead define a separate API for it?
 	client.DependencyUpdate = true
 	client.Version = chartVersion
+	if chartVersion == "" {
+		client.Version = CheckVersion(chartName, "leonardo")
+	}
 	client.Namespace = namespace
 	client.ReleaseName = releaseName
 	client.CreateNamespace = createNamespace
@@ -114,6 +120,8 @@ func installChart(namespace string, kubeToken string, apiServer string, caFile s
 	settings.KubeAPIServer = apiServer
 
 	cp, err := client.ChartPathOptions.LocateChart(chartName, settings)
+	log.Printf("chart path: %s \n", cp)
+
 	if err != nil {
 		log.Printf("%+v", err)
 		return C.CString(err.Error())
@@ -276,4 +284,116 @@ func (f *CustomConfigFlags) ToRESTConfig() (*rest.Config, error) {
 	//log.Printf("Helm client: setting QPS to %f and Burst to %d\n", c.QPS, c.Burst)
 
 	return c, nil
+}
+
+func CheckVersion(chart string, localChartDir string) string {
+	log.Printf("Calling checkversion with chart %q, localChartDir %v", chart, localChartDir)
+
+	chartName := chart[strings.LastIndex(chart, "/")+1:]
+	log.Printf("Pulled chart name %q", chartName)
+
+	fullLocalChartDir := localChartDir + "/" + chartName
+	log.Printf("Full local chart dir %q", fullLocalChartDir)
+
+	latestLocalVersion := ""
+	// Load charts from the local directory
+	charts, err := loader.LoadDir(fullLocalChartDir)
+	if err != nil {
+		log.Printf("Failed to load charts from directory %q: %v", fullLocalChartDir, err)
+	} else {
+		// Find the latest version of the specified chart
+		latestLocalVersion = findLatestVersion(charts, chartName)
+
+		if latestLocalVersion == "" {
+			log.Printf("Chart %q not found in the local directory\n", chartName)
+		}
+
+		log.Printf("Latest version of %s in the local directory is %s\n", chartName, latestLocalVersion)
+	}
+
+	// Run the "helm search" command to search for the chart in remote repositories
+	cmd := exec.Command("helm", "search", "repo", chartName)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Fatalf("Error running 'helm search': %v", err)
+	}
+
+	// Process the output to find the latest version of the chart
+	latestVersion := extractLatestVersion(string(output))
+
+	if latestVersion == "" {
+		log.Printf("Chart %q not found in any remote repository.\n", chartName)
+		return ""
+	}
+
+	log.Printf("Latest version of %s is %s\n", chartName, latestVersion)
+
+	if latestLocalVersion == "" {
+		replaceLocal(chart, localChartDir, fullLocalChartDir)
+		return latestVersion
+	}
+
+	v1, err := semver.NewVersion(latestLocalVersion)
+	if err != nil {
+		log.Println("Invalid version 1:", err)
+		return ""
+	}
+
+	v2, err := semver.NewVersion(latestVersion)
+	if err != nil {
+		log.Println("Invalid version 2:", err)
+		return ""
+	}
+
+	// Compare the semantic versions
+	comparison := v1.Compare(v2)
+
+	if comparison < 0 {
+		log.Printf("%s is less than %s\n", latestLocalVersion, latestVersion)
+		replaceLocal(chart, localChartDir, fullLocalChartDir)
+
+		return latestVersion
+
+	}
+	return ""
+}
+
+func replaceLocal(chart string, localChartDir string, fullLocalChartDir string) {
+	//pull latest version locally
+	exec.Command("rm", "-rf", fullLocalChartDir).Run()
+	cmd := exec.Command("helm", "pull", "--untar", "-d", localChartDir, chart)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	err := cmd.Run()
+	if err != nil {
+		log.Fatalf("Error running 'helm pull': %v", err)
+	}
+
+	log.Printf("Chart %q downloaded successfully\n", chart)
+}
+
+// Function to extract the latest version from "helm search" output
+func extractLatestVersion(output string) string {
+	lines := strings.Split(output, "\n")
+	if len(lines) >= 2 {
+		// Assuming the second line contains the latest chart version
+		// The output format of "helm search" is subject to change,
+		// so you may need to adjust this logic based on the actual output.
+		return strings.Fields(lines[1])[1]
+	}
+	return ""
+}
+
+// Function to find the latest version of the specified chart
+func findLatestVersion(charts *chart.Chart, chartName string) string {
+	var latestVersion string
+	//for _, c := range charts {
+	if charts.Metadata.Name == chartName {
+		if latestVersion == "" || charts.Metadata.Version > latestVersion {
+			latestVersion = charts.Metadata.Version
+		}
+	}
+	//}
+	return latestVersion
 }

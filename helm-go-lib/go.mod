@@ -8,6 +8,7 @@ replace (
 )
 
 require (
+	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/golang/glog v1.0.0
 	helm.sh/helm/v3 v3.11.2
 	k8s.io/cli-runtime v0.26.3
