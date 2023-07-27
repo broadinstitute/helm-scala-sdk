@@ -314,7 +314,7 @@ func CheckVersion(chart string, localChartDir string) string {
 	// Run the "helm search" command to search for the chart in remote repositories
 	cmd := exec.Command("helm", "search", "repo", chart)
 	output, err := cmd.CombinedOutput()
-	log.Printf("Output of helm search is %v\n", output)
+	log.Printf("Output of helm search is %v\n", string(output))
 
 	if err != nil {
 		log.Fatalf("Error running 'helm search': %v", err)
