@@ -321,7 +321,7 @@ func CheckVersion(chart string, localChartDir string) string {
 	}
 
 	// Process the output to find the latest version of the chart
-	latestVersion := extractLatestVersion(string(output))
+	latestVersion := extractLatestVersion(string(output), chart)
 
 	if latestVersion == "" {
 		log.Printf("Chart %q not found in any remote repository.\n", chart)
@@ -376,13 +376,25 @@ func replaceLocal(chart string, localChartDir string, fullLocalChartDir string) 
 }
 
 // Function to extract the latest version from "helm search" output
-func extractLatestVersion(output string) string {
+func extractLatestVersion(output string, chart string) string {
+	//	testString := `search_repo.go:131: [debug] Original chart version: ""
+	//13
+	//search_repo.go:141: [debug] setting version to >0.0.0
+	//12
+	//NAME          	CHART VERSION	APP VERSION	DESCRIPTION
+	//11
+	//terra-helm/wds	0.31.0       	           	A WDS application designed to run within a Kube...`
 	lines := strings.Split(output, "\n")
-	if len(lines) >= 2 {
-		// Assuming the second line contains the latest chart version
-		// The output format of "helm search" is subject to change,
-		// so you may need to adjust this logic based on the actual output.
-		return strings.Fields(lines[1])[1]
+	//lines := strings.Split(testString, "\n")
+	var result string
+	for _, item := range lines {
+		if strings.Contains(item, chart) {
+			result = item
+			break
+		}
+	}
+	if result != "" {
+		return strings.Fields(result)[1]
 	}
 	return ""
 }
