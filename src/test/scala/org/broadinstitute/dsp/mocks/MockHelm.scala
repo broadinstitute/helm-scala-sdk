@@ -16,7 +16,13 @@ class MockHelm extends HelmAlgebra[IO] {
 
   override def uninstall(release: Release, keepHistory: Boolean): Kleisli[IO, AuthContext, Unit] = Kleisli.pure(())
 
-  override def upgradeChart(release: Release, chartName: ChartName, chartVersion: ChartVersion, values: Values): Kleisli[IO, AuthContext, Unit] =
+  override def upgradeChart(release: Release,
+                            chartName: ChartName,
+                            chartVersion: ChartVersion,
+                            values: Values): Kleisli[IO, AuthContext, Unit] =
+    Kleisli.pure(())
+
+  override def pullChart(chartName: ChartName, chartVersion: ChartVersion): Kleisli[IO, AuthContext, Unit] =
     Kleisli.pure(())
 }
 

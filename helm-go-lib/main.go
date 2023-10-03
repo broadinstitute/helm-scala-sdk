@@ -9,14 +9,13 @@ import (
 	"os"
 	"strings"
 
-	"helm.sh/helm/v3/pkg/strvals"
-
 	"github.com/golang/glog"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/strvals"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
@@ -40,28 +39,36 @@ func main() {
 		return
 	}
 
-	namespace := progArgs[0]
-	kubeToken := progArgs[1]
-	apiServer := progArgs[2]
-	caFile := progArgs[3]
-	releaseName := progArgs[4]
-	chartName := progArgs[5]
-	chartVersion := progArgs[6]
-	overrideValues := ""
-	if len(progArgs) == 8 {
-		overrideValues = progArgs[7]
-	}
+	// namespace := progArgs[0]
+	// kubeToken := progArgs[1]
+	// apiServer := progArgs[2]
+	// caFile := progArgs[3]
+	// releaseName := progArgs[4]
+	// chartName := progArgs[5]
+	// chartVersion := progArgs[6]
+	// overrideValues := ""
+	// if len(progArgs) == 8 {
+	// 	overrideValues = progArgs[7]
+	// }
 
-	installChart(
-		namespace,
-		kubeToken,
-		apiServer,
-		caFile,
-		releaseName,
+	// installChart(
+	// 	namespace,
+	// 	kubeToken,
+	// 	apiServer,
+	// 	caFile,
+	// 	releaseName,
+	// 	chartName,
+	// 	chartVersion,
+	// 	overrideValues,
+	// 	true,
+	// )
+
+	chartName := "terra-helm/wds"
+	chartVersion := "0.31.0"
+
+	pullChart(
 		chartName,
 		chartVersion,
-		overrideValues,
-		true,
 	)
 
 	glog.Flush()
@@ -276,4 +283,41 @@ func (f *CustomConfigFlags) ToRESTConfig() (*rest.Config, error) {
 	//log.Printf("Helm client: setting QPS to %f and Burst to %d\n", c.QPS, c.Burst)
 
 	return c, nil
+}
+
+func pullChart(namespace string, kubeToken string, apiServer string, caFile string, chartName string, chartVersion string) {
+
+	settings := cli.New()
+
+	// Create a new action configuration
+	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
+	if err != nil {
+		log.Printf("%+v\n", err)
+	}
+
+	// Create a new client configuration
+	client := action.NewPull()
+	withConfig := action.WithConfig(actionConfig)
+	withConfig(client)
+
+	client.Settings = settings
+
+	// TODO do we need this
+	// client.ChartPathOptions.RepoURL = "https://charts.helm.sh/stable"
+	// client.ChartPathOptions.Version = chartVersion // Specify the desired chart version
+
+	// TODO what should this be?
+	destDir := "/leonardo"
+	client.DestDir = destDir
+
+	// Perform the chart pull operation
+	result, err := client.Run(chartName)
+	if err != nil {
+		panic(err)
+	}
+
+	// Output success message
+	fmt.Println("Chart successfully pulled to:", destDir)
+	fmt.Println(result)
+
 }

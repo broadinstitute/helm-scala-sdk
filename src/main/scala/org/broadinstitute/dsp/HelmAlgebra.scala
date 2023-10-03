@@ -27,6 +27,11 @@ trait HelmAlgebra[F[_]] {
     chartVersion: ChartVersion,
     values: Values
   ): Kleisli[F, AuthContext, Unit]
+
+  def pullChart(
+    chartName: ChartName,
+    chartVersion: ChartVersion
+  ): Kleisli[F, AuthContext, Unit]
 }
 
 final case class HelmException(message: String) extends NoStackTrace {
