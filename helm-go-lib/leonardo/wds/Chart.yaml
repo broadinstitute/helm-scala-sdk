@@ -1,4 +1,0 @@
-apiVersion: v2
-description: A WDS application designed to run within a Kubernetes cluster.
-name: wds
-version: 0.31.0
