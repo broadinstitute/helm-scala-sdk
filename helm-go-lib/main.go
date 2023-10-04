@@ -39,37 +39,37 @@ func main() {
 		return
 	}
 
-	// namespace := progArgs[0]
-	// kubeToken := progArgs[1]
-	// apiServer := progArgs[2]
-	// caFile := progArgs[3]
-	// releaseName := progArgs[4]
-	// chartName := progArgs[5]
-	// chartVersion := progArgs[6]
-	// overrideValues := ""
-	// if len(progArgs) == 8 {
-	// 	overrideValues = progArgs[7]
-	// }
+	namespace := progArgs[0]
+	kubeToken := progArgs[1]
+	apiServer := progArgs[2]
+	caFile := progArgs[3]
+	releaseName := progArgs[4]
+	chartName := progArgs[5]
+	chartVersion := progArgs[6]
+	overrideValues := ""
+	if len(progArgs) == 8 {
+		overrideValues = progArgs[7]
+	}
 
-	// installChart(
-	// 	namespace,
-	// 	kubeToken,
-	// 	apiServer,
-	// 	caFile,
-	// 	releaseName,
-	// 	chartName,
-	// 	chartVersion,
-	// 	overrideValues,
-	// 	true,
-	// )
-
-	chartName := "terra-helm/wds"
-	chartVersion := "0.31.0"
-
-	pullChart(
+	installChart(
+		namespace,
+		kubeToken,
+		apiServer,
+		caFile,
+		releaseName,
 		chartName,
 		chartVersion,
+		overrideValues,
+		true,
 	)
+
+	// chartName := "terra-helm/wds"
+	// chartVersion := "0.31.0"
+
+	// pullChart(
+	// 	chartName,
+	// 	chartVersion,
+	// )
 
 	glog.Flush()
 }
@@ -285,12 +285,13 @@ func (f *CustomConfigFlags) ToRESTConfig() (*rest.Config, error) {
 	return c, nil
 }
 
-func pullChart(namespace string, kubeToken string, apiServer string, caFile string, chartName string, chartVersion string) {
+func pullChart(namespace string, kubeToken string, apiServer string, caFile string, chartName string, chartVersion string) *C.char {
+	// func pullChart(chartName string, chartVersion string) {
 
 	settings := cli.New()
 
 	// Create a new action configuration
-	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
+	actionConfig, err := buildActionConfig("namespace", "kubeToken", "apiServer", "caFile")
 	if err != nil {
 		log.Printf("%+v\n", err)
 	}
@@ -308,6 +309,7 @@ func pullChart(namespace string, kubeToken string, apiServer string, caFile stri
 
 	// TODO what should this be?
 	destDir := "/leonardo"
+	// destDir := "/Users/bmorgan/dev/workbench/helm-scala-sdk/helm-go-lib"
 	client.DestDir = destDir
 
 	// Perform the chart pull operation
@@ -319,5 +321,6 @@ func pullChart(namespace string, kubeToken string, apiServer string, caFile stri
 	// Output success message
 	fmt.Println("Chart successfully pulled to:", destDir)
 	fmt.Println(result)
+	return C.CString("ok")
 
 }

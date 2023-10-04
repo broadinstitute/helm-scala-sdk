@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "app.fullname" . }}-wds-depl
+  labels:
+  {{- include "app.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "app.wds.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "app.wds.selectorLabels" . | nindent 8 }}
+        {{- include "app.labels" . | nindent 8 }}
+        leoServiceName: wds
+        {{- if .Values.workloadIdentity.enabled }}
+        azure.workload.identity/use: "true"
+        {{ end }}
+    spec:
+      {{- if .Values.workloadIdentity.enabled }}
+      serviceAccountName: {{ .Values.workloadIdentity.serviceAccountName }}
+      {{ end }}
+      containers:
+        - name: {{ .Values.wds.name }}-container
+          image: {{ .Values.wds.image }}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: "384Mi"
+              cpu: "50m"
+            limits:
+              memory: "1024Mi"
+              cpu: "200m"
+          volumeMounts:
+            - name: {{ include "app.fullname" . }}-wds-config
+              mountPath: {{ .Values.wds.conf_dir }}/{{ .Values.wds.conf_file }}
+              subPath: {{ .Values.wds.conf_file }}
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: {{ .Values.wds.java_tool_options }}
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              value: {{ .Values.config.applicationInsightsConnectionString }}
+            - name: SPRING_CONFIG_ADDITIONALLOCATION
+              value: {{ .Values.wds.conf_dir }}/{{ .Values.wds.conf_file }}
+            {{- if .Values.postgres.podLocalDatabaseEnabled }}
+            - name: WDS_DB_HOST
+              value: {{ include "app.fullname" . }}-postgres
+            - name: WDS_DB_PASSWORD
+              value: {{ include "dbPassword" . | b64enc | quote }}
+            {{- else }}
+            - name: WDS_DB_HOST
+              value: {{ .Values.postgres.host }}
+            - name: ADDITIONAL_JDBC_URL_PARAMS
+              value: "sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin"
+            {{- end }}
+            - name: WDS_DB_USER
+              value: {{ .Values.postgres.user }}
+            - name: WDS_DB_NAME
+              value: {{ .Values.postgres.dbname }}
+            - name: WDS_DB_PORT
+              value: "{{ .Values.postgres.port }}"
+            - name: SWAGGER_BASE_PATH
+              value: "{{ .Values.env.swaggerBasePath }}"
+            - name: WORKSPACE_ID
+              value: "{{ .Values.general.workspaceManager.workspaceId }}"
+            - name: SAM_URL
+              value: "{{ .Values.sam.url }}"
+            - name: LZ_MRG
+              value: "{{ .Values.config.resourceGroup }}"
+            - name: RELEASE_NAME
+              value: {{ include "app.fullname" . }}
+            - name: CLIENT_ID
+              value: "{{ .Values.identity.clientId }}"
+            - name: SOURCE_WORKSPACE_ID
+              value: "{{ .Values.provenance.sourceWorkspaceId }}"
+            - name: DATA_REPO_URL
+              value: "{{ .Values.import.dataRepoUrl }}"
+            - name: WORKSPACE_MANAGER_URL
+              value: "{{ .Values.workspacemanager.url }}"
+            - name: HELM_CHART
+              value: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+            - name: WDS_IMAGE
+              value: "{{ .Values.wds.image }}"
+            - name: STARTUP_TOKEN
+              value: "{{ .Values.provenance.userAccessToken }}"
+            - name: LEONARDO_URL
+              value: "{{ .Values.leonardo.url }}"
+
+      volumes:
+        - name: {{ include "app.fullname" . }}-wds-config
+          configMap:
+            name: {{ include "app.fullname" . }}-wds-configmap
+            items:
+                - key: {{ .Values.wds.conf_file }}
+                  path: {{ .Values.wds.conf_file }}

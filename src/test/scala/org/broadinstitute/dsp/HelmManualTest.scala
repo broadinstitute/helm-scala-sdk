@@ -1,6 +1,5 @@
 package org.broadinstitute.dsp
 
-import java.nio.file.Path
 import java.nio.file.Paths
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
@@ -145,4 +144,12 @@ final class HelmManualTest(namespace: String, token: String, apiServer: String, 
       .uninstall(Release(release), keepHistory)
       .run(authContext)
       .unsafeRunSync()
+
+  def callPullChart(chartName: String, chartVersion: String): Unit = {
+    println(helmClient)
+    helmClient
+      .pullChart(ChartName(chartName), ChartVersion(chartVersion))
+      .run(authContext)
+      .unsafeRunSync()
+  }
 }
