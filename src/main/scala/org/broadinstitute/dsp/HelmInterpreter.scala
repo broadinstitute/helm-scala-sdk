@@ -68,10 +68,6 @@ class HelmInterpreter[F[_]](concurrencyBound: Semaphore[F])(implicit logger: Log
         boundF(
           F.blocking(
             helmClient.updateAndPull(
-              ctx.namespace,
-              ctx.kubeToken,
-              ctx.kubeApiServer,
-              ctx.caCertFile,
               chartName,
               chartVersion,
               destDir

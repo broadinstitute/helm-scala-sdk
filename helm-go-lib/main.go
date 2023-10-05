@@ -18,7 +18,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"strings"
 )
 
 /*
@@ -278,12 +277,15 @@ func (f *CustomConfigFlags) ToRESTConfig() (*rest.Config, error) {
 }
 
 //export pullChart
-func pullChart(namespace string, kubeToken string, apiServer string, caFile string, chart string, chartVersion string, destDir string) *C.char {
-	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
-	if err != nil {
-		log.Printf("%+v\n", err)
-		return C.CString(err.Error())
+func pullChart(chart string, chartVersion string, destDir string) *C.char {
+	var kubeConfig *genericclioptions.ConfigFlags
+	kubeConfig = genericclioptions.NewConfigFlags(false)
+
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(kubeConfig, "namespace", os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+		return nil
 	}
+
 	// Create a new client configuration
 	client := action.NewPull()
 	withConfig := action.WithConfig(actionConfig)
@@ -324,8 +326,8 @@ func updateRepo() *C.char {
 }
 
 //export updateAndPull
-func updateAndPull(namespace string, kubeToken string, apiServer string, caFile string, chart string, chartVersion string, destDir string) *C.char {
+func updateAndPull(chart string, chartVersion string, destDir string) *C.char {
 	updateRepo()
-	pullChart(namespace, kubeToken, apiServer, caFile, chart, chartVersion, destDir)
+	pullChart(chart, chartVersion, destDir)
 	return C.CString("ok")
 }

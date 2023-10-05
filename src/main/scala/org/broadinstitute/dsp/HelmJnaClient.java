@@ -61,10 +61,7 @@ public interface HelmJnaClient extends Library {
                        GoString.ByValue caCertFile
                        );
 
-  public void updateAndPull(GoString.ByValue namespace,
-                       GoString.ByValue kubeToken,
-                       GoString.ByValue kubeApiServer,
-                       GoString.ByValue caCertFile,
+  public void updateAndPull(
                         GoString.ByValue chartName,
                         GoString.ByValue chartVersion,
                         GoString.ByValue destDir
