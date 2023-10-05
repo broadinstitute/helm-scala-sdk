@@ -61,13 +61,15 @@ class HelmInterpreter[F[_]](concurrencyBound: Semaphore[F])(implicit logger: Log
       _ <- Kleisli.liftF(translateResult("helm list", "ok"))
     } yield ()
 
-  def updateAndPull(chartName: ChartName, chartVersion: ChartVersion, destDir: String): Kleisli[F, AuthContext, Unit] =
+  def updateAndPullChart(chartName: ChartName,
+                         chartVersion: ChartVersion,
+                         destDir: String): Kleisli[F, AuthContext, Unit] =
     for {
       ctx <- Kleisli.ask[F, AuthContext]
       _ <- Kleisli.liftF(
         boundF(
           F.blocking(
-            helmClient.updateAndPull(
+            helmClient.updateAndPullChart(
               chartName,
               chartVersion,
               destDir

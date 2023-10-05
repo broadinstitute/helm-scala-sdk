@@ -18,6 +18,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 /*
@@ -294,10 +295,7 @@ func pullChart(chart string, chartVersion string, destDir string) *C.char {
 	settings := cli.New()
 	client.Settings = settings
 
-	// TODO do we need this
-	// client.ChartPathOptions.RepoURL = "https://charts.helm.sh/stable"
-	client.ChartPathOptions.Version = chartVersion // Specify the desired chart version
-
+	client.ChartPathOptions.Version = chartVersion
 	client.DestDir = destDir
 
 	// Perform the chart pull operation
@@ -307,8 +305,8 @@ func pullChart(chart string, chartVersion string, destDir string) *C.char {
 	}
 
 	// Output success message
-	fmt.Println("Chart successfully pulled to:", destDir)
-	fmt.Println(result)
+	log.Printf("Chart %s version %s successfully pulled to %s", chart, chartVersion, destDir)
+	log.Println(result)
 	return C.CString("ok")
 }
 
@@ -325,8 +323,8 @@ func updateRepo() *C.char {
 	return C.CString("ok")
 }
 
-//export updateAndPull
-func updateAndPull(chart string, chartVersion string, destDir string) *C.char {
+//export updateAndPullChart
+func updateAndPullChart(chart string, chartVersion string, destDir string) *C.char {
 	updateRepo()
 	pullChart(chart, chartVersion, destDir)
 	return C.CString("ok")

@@ -24,5 +24,3 @@ scalacOptions ++= Seq(
   "-feature"
 //  "-Xfatal-warnings"
 )
-
-//javaOptions in console ++= Seq("-Djna.library.path=/Users/qi/workspace/helm-java-sdk/helm-go-lib")
