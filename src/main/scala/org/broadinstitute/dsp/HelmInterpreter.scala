@@ -61,13 +61,13 @@ class HelmInterpreter[F[_]](concurrencyBound: Semaphore[F])(implicit logger: Log
       _ <- Kleisli.liftF(translateResult("helm list", "ok"))
     } yield ()
 
-  def pullChart(chartName: ChartName, chartVersion: ChartVersion, destDir: String): Kleisli[F, AuthContext, Unit] =
+  def updateAndPull(chartName: ChartName, chartVersion: ChartVersion, destDir: String): Kleisli[F, AuthContext, Unit] =
     for {
       ctx <- Kleisli.ask[F, AuthContext]
       _ <- Kleisli.liftF(
         boundF(
           F.blocking(
-            helmClient.pullChart(
+            helmClient.updateAndPull(
               ctx.namespace,
               ctx.kubeToken,
               ctx.kubeApiServer,
@@ -79,8 +79,7 @@ class HelmInterpreter[F[_]](concurrencyBound: Semaphore[F])(implicit logger: Log
           )
         )
       )
-      // TODO: Make 'helm list' return String
-      _ <- Kleisli.liftF(translateResult("helm pullChart", "ok"))
+      _ <- Kleisli.liftF(translateResult("helm updateAndPullChart", "ok"))
     } yield ()
 
   override def uninstall(release: Release, keepHistory: Boolean): Kleisli[F, AuthContext, Unit] =
@@ -126,29 +125,6 @@ class HelmInterpreter[F[_]](concurrencyBound: Semaphore[F])(implicit logger: Log
         )
       )
       _ <- Kleisli.liftF(translateResult("helm upgradeChart", r))
-    } yield ()
-
-  override def pullChart(
-    chartName: ChartName,
-    chartVersion: ChartVersion
-  ): Kleisli[F, AuthContext, Unit] =
-    for {
-      ctx <- Kleisli.ask[F, AuthContext]
-      r <- Kleisli.liftF(
-        boundF(
-          F.delay(
-            helmClient.pullChart(
-              ctx.namespace,
-              ctx.kubeToken,
-              ctx.kubeApiServer,
-              ctx.caCertFile,
-              chartName,
-              chartVersion
-            )
-          )
-        )
-      )
-      _ <- Kleisli.liftF(translateResult("helm pullChart", r))
     } yield ()
 
   private def translateResult(cmd: String, result: String): F[Unit] = result match {

@@ -5,10 +5,6 @@ import "C"
 import (
 	"flag"
 	"fmt"
-	"log"
-	"os"
-	"strings"
-
 	"github.com/golang/glog"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -19,6 +15,10 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
+	"log"
+	"os"
+	"os/exec"
+	"strings"
 )
 
 /*
@@ -62,14 +62,6 @@ func main() {
 		overrideValues,
 		true,
 	)
-
-	// chartName := "terra-helm/wds"
-	// chartVersion := "0.31.0"
-
-	// pullChart(
-	// 	chartName,
-	// 	chartVersion,
-	// )
 
 	glog.Flush()
 }
@@ -285,19 +277,6 @@ func (f *CustomConfigFlags) ToRESTConfig() (*rest.Config, error) {
 	return c, nil
 }
 
-<<<<<<< Updated upstream
-func pullChart(namespace string, kubeToken string, apiServer string, caFile string, chartName string, chartVersion string) *C.char {
-	// func pullChart(chartName string, chartVersion string) {
-
-	settings := cli.New()
-
-	// Create a new action configuration
-	actionConfig, err := buildActionConfig("namespace", "kubeToken", "apiServer", "caFile")
-	if err != nil {
-		log.Printf("%+v\n", err)
-	}
-
-=======
 //export pullChart
 func pullChart(namespace string, kubeToken string, apiServer string, caFile string, chart string, chartVersion string, destDir string) *C.char {
 	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
@@ -305,38 +284,22 @@ func pullChart(namespace string, kubeToken string, apiServer string, caFile stri
 		log.Printf("%+v\n", err)
 		return C.CString(err.Error())
 	}
->>>>>>> Stashed changes
 	// Create a new client configuration
 	client := action.NewPull()
 	withConfig := action.WithConfig(actionConfig)
 	withConfig(client)
 
-<<<<<<< Updated upstream
-=======
 	settings := cli.New()
->>>>>>> Stashed changes
 	client.Settings = settings
 
 	// TODO do we need this
 	// client.ChartPathOptions.RepoURL = "https://charts.helm.sh/stable"
-<<<<<<< Updated upstream
-	// client.ChartPathOptions.Version = chartVersion // Specify the desired chart version
-
-	// TODO what should this be?
-	destDir := "/leonardo"
-	// destDir := "/Users/bmorgan/dev/workbench/helm-scala-sdk/helm-go-lib"
-	client.DestDir = destDir
-
-	// Perform the chart pull operation
-	result, err := client.Run(chartName)
-=======
 	client.ChartPathOptions.Version = chartVersion // Specify the desired chart version
 
 	client.DestDir = destDir
 
 	// Perform the chart pull operation
 	result, err := client.Run(chart)
->>>>>>> Stashed changes
 	if err != nil {
 		panic(err)
 	}
@@ -345,8 +308,24 @@ func pullChart(namespace string, kubeToken string, apiServer string, caFile stri
 	fmt.Println("Chart successfully pulled to:", destDir)
 	fmt.Println(result)
 	return C.CString("ok")
-<<<<<<< Updated upstream
+}
 
-=======
->>>>>>> Stashed changes
+func updateRepo() *C.char {
+	// Run the "helm search" command to search for the chart in remote repositories
+	cmd := exec.Command("helm", "repo", "update")
+	output, err := cmd.CombinedOutput()
+	log.Printf("Output of helm update is %v\n", string(output))
+
+	if err != nil {
+		log.Fatalf("Error running 'helm update': %v", err)
+	}
+
+	return C.CString("ok")
+}
+
+//export updateAndPull
+func updateAndPull(namespace string, kubeToken string, apiServer string, caFile string, chart string, chartVersion string, destDir string) *C.char {
+	updateRepo()
+	pullChart(namespace, kubeToken, apiServer, caFile, chart, chartVersion, destDir)
+	return C.CString("ok")
 }

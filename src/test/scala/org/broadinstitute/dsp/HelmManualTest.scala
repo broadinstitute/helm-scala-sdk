@@ -139,9 +139,9 @@ final class HelmManualTest(namespace: String, token: String, apiServer: String, 
       .run(authContext)
       .unsafeRunSync()
 
-  def pullChart(chartName: String, chartVersion: String, destDir: String): Unit =
+  def callUpdateAndPull(chartName: String, chartVersion: String, destDir: String): Unit =
     helmClient
-      .pullChart(ChartName(chartName), ChartVersion(chartVersion), destDir)
+      .updateAndPull(ChartName(chartName), ChartVersion(chartVersion), destDir)
       .run(authContext)
       .unsafeRunSync()
 
@@ -151,11 +151,4 @@ final class HelmManualTest(namespace: String, token: String, apiServer: String, 
       .run(authContext)
       .unsafeRunSync()
 
-  def callPullChart(chartName: String, chartVersion: String): Unit = {
-    println(helmClient)
-    helmClient
-      .pullChart(ChartName(chartName), ChartVersion(chartVersion))
-      .run(authContext)
-      .unsafeRunSync()
-  }
 }
