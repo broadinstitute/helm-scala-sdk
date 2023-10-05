@@ -11,6 +11,19 @@ cd helm-go-lib
 go build -o libhelm.dylib -buildmode=c-shared main.go
 ```
 
+# Developing
+Most `helm` functionality will require access to a Kubernetes cluster.  These typically come from an `AuthContext`, which includes a namespace, token, server, and certFile.   These values can then be passed to the [`buildActionConfig`](https://github.com/broadinstitute/helm-scala-sdk/blob/02ef33988a3ef70abef475094942f028adcd1c59/helm-go-lib/main.go#L242) method to create config for most helm functions.
+
+New methods in `helm-go-lib/main.go` must be exposed to the `HelmJnaClient` with a comment above the method, e.g.
+```
+//export installChart
+func installChart(namespace string, kubeToken string, apiServer string, caFile string, releaseName string, chartName string, chartVersion string, overrideValues string, createNamespace bool) *C.char {
+...
+}
+```
+Otherwise `HelmJnaClient` will not be able to use the method.
+New methods or signature updates should be reflected in `HelmJnaClient`, `HelmAlgebra`, `HelmInterpreter`, and `MockHelm`.  In order to run manual tests on your method, you will also want to update `HelmManualTest`.
+
 # Usage
 - Add the library to project dependency
 ```
