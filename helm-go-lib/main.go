@@ -285,6 +285,7 @@ func (f *CustomConfigFlags) ToRESTConfig() (*rest.Config, error) {
 	return c, nil
 }
 
+<<<<<<< Updated upstream
 func pullChart(namespace string, kubeToken string, apiServer string, caFile string, chartName string, chartVersion string) *C.char {
 	// func pullChart(chartName string, chartVersion string) {
 
@@ -296,15 +297,29 @@ func pullChart(namespace string, kubeToken string, apiServer string, caFile stri
 		log.Printf("%+v\n", err)
 	}
 
+=======
+//export pullChart
+func pullChart(namespace string, kubeToken string, apiServer string, caFile string, chart string, chartVersion string, destDir string) *C.char {
+	actionConfig, err := buildActionConfig(namespace, kubeToken, apiServer, caFile)
+	if err != nil {
+		log.Printf("%+v\n", err)
+		return C.CString(err.Error())
+	}
+>>>>>>> Stashed changes
 	// Create a new client configuration
 	client := action.NewPull()
 	withConfig := action.WithConfig(actionConfig)
 	withConfig(client)
 
+<<<<<<< Updated upstream
+=======
+	settings := cli.New()
+>>>>>>> Stashed changes
 	client.Settings = settings
 
 	// TODO do we need this
 	// client.ChartPathOptions.RepoURL = "https://charts.helm.sh/stable"
+<<<<<<< Updated upstream
 	// client.ChartPathOptions.Version = chartVersion // Specify the desired chart version
 
 	// TODO what should this be?
@@ -314,6 +329,14 @@ func pullChart(namespace string, kubeToken string, apiServer string, caFile stri
 
 	// Perform the chart pull operation
 	result, err := client.Run(chartName)
+=======
+	client.ChartPathOptions.Version = chartVersion // Specify the desired chart version
+
+	client.DestDir = destDir
+
+	// Perform the chart pull operation
+	result, err := client.Run(chart)
+>>>>>>> Stashed changes
 	if err != nil {
 		panic(err)
 	}
@@ -322,5 +345,8 @@ func pullChart(namespace string, kubeToken string, apiServer string, caFile stri
 	fmt.Println("Chart successfully pulled to:", destDir)
 	fmt.Println(result)
 	return C.CString("ok")
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 }

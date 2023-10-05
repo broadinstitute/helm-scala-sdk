@@ -139,6 +139,12 @@ final class HelmManualTest(namespace: String, token: String, apiServer: String, 
       .run(authContext)
       .unsafeRunSync()
 
+  def pullChart(chartName: String, chartVersion: String, destDir: String): Unit =
+    helmClient
+      .pullChart(ChartName(chartName), ChartVersion(chartVersion), destDir)
+      .run(authContext)
+      .unsafeRunSync()
+
   def callUninstall(release: String, keepHistory: Boolean): Unit =
     helmClient
       .uninstall(Release(release), keepHistory)
