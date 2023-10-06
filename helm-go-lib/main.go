@@ -277,14 +277,14 @@ func (f *CustomConfigFlags) ToRESTConfig() (*rest.Config, error) {
 	return c, nil
 }
 
-//export pullChart
 func pullChart(chart string, chartVersion string, destDir string) *C.char {
 	var kubeConfig *genericclioptions.ConfigFlags
 	kubeConfig = genericclioptions.NewConfigFlags(false)
 
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(kubeConfig, "namespace", os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
-		return nil
+		log.Printf("%+v\n", err)
+		return C.CString(err.Error())
 	}
 
 	// Create a new client configuration
@@ -301,7 +301,8 @@ func pullChart(chart string, chartVersion string, destDir string) *C.char {
 	// Perform the chart pull operation
 	result, err := client.Run(chart)
 	if err != nil {
-		panic(err)
+		log.Printf("Error running 'helm pull': %v", err)
+		return C.CString(err.Error())
 	}
 
 	// Output success message
@@ -318,6 +319,7 @@ func updateRepo() *C.char {
 
 	if err != nil {
 		log.Fatalf("Error running 'helm update': %v", err)
+		return C.CString(err.Error())
 	}
 
 	return C.CString("ok")

@@ -17,9 +17,7 @@ trait HelmAlgebra[F[_]] {
 
   def listHelm(): Kleisli[F, AuthContext, Unit]
 
-  def updateAndPullChart(chartName: ChartName,
-                         chartVersion: ChartVersion,
-                         destDir: String): Kleisli[F, AuthContext, Unit]
+  def updateAndPullChart(chartName: ChartName, chartVersion: ChartVersion, destDir: String): Kleisli[F, Unit, Unit]
 
   // Set keepHistory to true to make helm retain a record to the release which can make debuggingg easier.
   // https://helm.sh/docs/intro/using_helm/#helm-uninstall-uninstalling-a-release
