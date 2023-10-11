@@ -61,6 +61,12 @@ public interface HelmJnaClient extends Library {
                        GoString.ByValue caCertFile
                        );
 
+  public String updateAndPullChart(
+                        GoString.ByValue chartName,
+                        GoString.ByValue chartVersion,
+                        GoString.ByValue destDir
+  );
+
 
   public String upgradeChart(
           GoString.ByValue namespace,

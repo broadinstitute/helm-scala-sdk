@@ -5,21 +5,20 @@ import "C"
 import (
 	"flag"
 	"fmt"
-	"log"
-	"os"
-	"strings"
-
-	"helm.sh/helm/v3/pkg/strvals"
-
 	"github.com/golang/glog"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/strvals"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
+	"log"
+	"os"
+	"os/exec"
+	"strings"
 )
 
 /*
@@ -276,4 +275,59 @@ func (f *CustomConfigFlags) ToRESTConfig() (*rest.Config, error) {
 	//log.Printf("Helm client: setting QPS to %f and Burst to %d\n", c.QPS, c.Burst)
 
 	return c, nil
+}
+
+func pullChart(chart string, chartVersion string, destDir string) *C.char {
+	var kubeConfig *genericclioptions.ConfigFlags
+	kubeConfig = genericclioptions.NewConfigFlags(false)
+
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(kubeConfig, "namespace", os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+		log.Printf("%+v\n", err)
+		return C.CString(err.Error())
+	}
+
+	// Create a new client configuration
+	client := action.NewPull()
+	withConfig := action.WithConfig(actionConfig)
+	withConfig(client)
+
+	settings := cli.New()
+	client.Settings = settings
+
+	client.ChartPathOptions.Version = chartVersion
+	client.DestDir = destDir
+
+	// Perform the chart pull operation
+	result, err := client.Run(chart)
+	if err != nil {
+		log.Printf("Error running 'helm pull': %v", err)
+		return C.CString(err.Error())
+	}
+
+	// Output success message
+	log.Printf("Chart %s version %s successfully pulled to %s", chart, chartVersion, destDir)
+	log.Println(result)
+	return C.CString("ok")
+}
+
+func updateRepo() *C.char {
+	// Run the "helm search" command to search for the chart in remote repositories
+	cmd := exec.Command("helm", "repo", "update")
+	output, err := cmd.CombinedOutput()
+	log.Printf("Output of helm update is %v\n", string(output))
+
+	if err != nil {
+		log.Fatalf("Error running 'helm update': %v", err)
+		return C.CString(err.Error())
+	}
+
+	return C.CString("ok")
+}
+
+//export updateAndPullChart
+func updateAndPullChart(chart string, chartVersion string, destDir string) *C.char {
+	updateRepo()
+	pullChart(chart, chartVersion, destDir)
+	return C.CString("ok")
 }
