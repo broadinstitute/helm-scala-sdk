@@ -1,8 +1,6 @@
 module broadinstitute/helm-scala-sdk
 
-go 1.22
-
-toolchain go1.22.5
+go 1.23
 
 replace (
 	github.com/docker/distribution => github.com/docker/distribution v0.0.0-20191216044856-a8371794149d
