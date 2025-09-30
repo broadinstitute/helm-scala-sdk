@@ -44,12 +44,16 @@ Publish locally
 
 `sbt publishLocal` (`sbt ++publishLocal` to cross build multiple versions of scala)
 
-Publish to JFrog
+Publish to Google Artifact Registry
 
 Before running the publishing command, make sure to bump the package version in built.sbt.
 Make sure to compile/publish with Java 17, this is what leonardo expects!
-You can then find the artifactory credentials on vault (`secret/dsp/accts/artifactory/dsdejenkins`).
-Export both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD to your environment.
+Log into your `@broadinstitute.org` GCP account using:
+```
+gcloud auth application-default login
+```
+
+Then run:
 
 `sbt publish` (`sbt ++publish` to cross build multiple versions of scala)
 
